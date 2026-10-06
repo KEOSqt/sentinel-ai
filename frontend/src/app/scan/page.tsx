@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -69,9 +70,9 @@ export default function ScanPage() {
         {error && <p className="text-sm text-red-400">{error}</p>}
         {scanId && (
           <div className="flex gap-4 text-sm">
-            <a className="text-sky-400 hover:underline" href="/findings">View findings</a>
-            <a className="text-sky-400 hover:underline" href="/assets">View assets</a>
-            <a className="text-sky-400 hover:underline" href="/reports">Reports</a>
+            <Link className="text-sky-400 hover:underline" href="/findings">View findings</Link>
+            <Link className="text-sky-400 hover:underline" href="/assets">View assets</Link>
+            <Link className="text-sky-400 hover:underline" href="/reports">Reports</Link>
           </div>
         )}
       </div>

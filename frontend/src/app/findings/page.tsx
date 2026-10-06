@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { apiGet, Finding } from "@/lib/api";
 import { SeverityBadge } from "@/lib/ui";
 
@@ -29,7 +30,7 @@ export default async function FindingsPage() {
               <tr key={f.id} className="border-t border-slate-800">
                 <td className="py-2"><SeverityBadge severity={f.severity} /></td>
                 <td className="py-2">
-                  <a className="text-sky-400 hover:underline" href={`/findings/${f.id}`}>{f.title}</a>
+                  <Link className="text-sky-400 hover:underline" href={`/findings/${f.id}`}>{f.title}</Link>
                 </td>
                 <td className="py-2 font-mono text-slate-300">{f.asset?.ip ?? "â€”"}</td>
                 <td className="py-2">{f.risk_score}</td>
