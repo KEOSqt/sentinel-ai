@@ -1,0 +1,52 @@
+# Architecture
+
+Sentinel-AI is a modular monolith: a FastAPI backend and a Next.js frontend. No microservices, no custom databases.
+
+## Layers
+
+```mermaid
+flowchart TD
+    FE[Next.js Frontend] --> REST[REST API]
+    REST --> PIPE[Pipeline Service]
+    PIPE --> PARSE[Nmap Parser]
+    PARSE --> NORM[Normalization]
+    NORM --> CORR[Correlation Engine]
+    NORM --> VULN[Vuln Intelligence]
+    CORR --> RISK[Risk Engine]
+    VULN --> CORR
+    RISK --> AI[AI Analyst]
+    RAG[RAG Knowledge Base] --> AI
+    AI --> STORE[(SQLite)]
+    CORR --> STORE
+```
+
+## Components
+
+- **Ingestion** (`app/parsers/nmap.py`): defusedxml-based parsing of Nmap XML into `SecurityEvidence` with typed assets, services (port/protocol/product/version/state), OS info, and timestamps. XXE and malformed-input safe.
+- **Normalization** (`app/services/normalization.py`): deduplicates assets by IP and merges services/metadata.
+- **Correlation engine** (`app/services/correlation.py`): rule-based; each rule receives an asset and its per-service vulnerabilities and emits findings. New rules can be appended to `RULES` without touching the engine.
+- **Risk engine** (`app/services/risk.py`): deterministic scoring.
+
+  `risk_score = base(severity) × confidence_factor × exposure_factor`, clamped to [0, 100].
+
+  | Band | Score |
+  | --- | --- |
+  | INFO | 0–19 |
+  | LOW | 20–39 |
+  | MEDIUM | 40–59 |
+  | HIGH | 60–79 |
+  | CRITICAL | 80–100 |
+
+  Base: INFO 10, LOW 25, MEDIUM 45, HIGH 70, CRITICAL 90. Confidence: confirmed 1.0, probable 0.85, possible 0.6, unknown 0.5. Exposure: public 1.0, unknown 0.8, internal 0.7. The LLM never sets the final score.
+- **Vulnerability intelligence** (`app/services/vulns/`): `local.py` curated CVE dataset matched on product+version; `nvd.py` live NVD keyword lookup (confidence `possible`). Local matches win on dedupe. Failures degrade to local-only.
+- **AI analyst** (`app/services/ai/analyst.py`): builds a structured JSON payload, retrieves RAG context, calls OpenAI → Ollama → deterministic local fallback, and validates output against the `AIAnalysis` pydantic schema. Invalid JSON, timeouts, or provider errors fall back gracefully.
+- **RAG** (`app/services/ai/rag.py`): chunking + lightweight token-overlap retrieval over bundled docs in `app/services/ai/knowledge/`. Chosen over a vector DB to avoid unnecessary infrastructure.
+- **Persistence** (`app/db`): SQLite via SQLAlchemy 2.0 storing scan evidence, findings, and AI analysis as JSON; reports as markdown.
+- **Pipeline** (`app/services/pipeline.py`): orchestrates ingest → analyze → store → report.
+
+## Design Decisions
+
+- Deterministic security logic; AI only explains/prioritizes/recommends.
+- Structured LLM output validated with pydantic; never trust raw completions.
+- NVD/LLM failures never break the analysis pipeline.
+- No auth in MVP; CORS open for local development.
