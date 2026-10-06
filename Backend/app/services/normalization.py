@@ -1,4 +1,4 @@
-from app.models import Asset, SecurityEvidence, Service
+from app.models import Asset, SecurityEvidence
 
 
 def normalize_evidence(evidence: SecurityEvidence) -> SecurityEvidence:

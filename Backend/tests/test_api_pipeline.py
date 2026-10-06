@@ -4,10 +4,14 @@ from pathlib import Path
 os.environ["SENTINEL_DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["SENTINEL_NVD_ENABLED"] = "false"
 
+_test_db = Path(__file__).parent.parent / "test.db"
+if _test_db.exists():
+    _test_db.unlink()
+
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app  # noqa: E402
+from app.main import app
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_nmap.xml"
 

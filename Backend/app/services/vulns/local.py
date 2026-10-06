@@ -1,10 +1,9 @@
 import re
-from typing import Optional
 
 from app.models import Confidence, Severity, Vulnerability
 
 
-def _version_tuple(version: Optional[str]) -> Optional[tuple[int, ...]]:
+def _version_tuple(version: str | None) -> tuple[int, ...] | None:
     if not version:
         return None
     match = re.match(r"\s*(\d+(?:\.\d+)*)", version)
@@ -19,7 +18,7 @@ def _compare(a: tuple[int, ...], b: tuple[int, ...]) -> int:
     return (a > b) - (a < b)
 
 
-def version_at_most(version: Optional[str], max_version: str) -> bool:
+def version_at_most(version: str | None, max_version: str) -> bool:
     v = _version_tuple(version)
     m = _version_tuple(max_version)
     if v is None or m is None:
@@ -76,13 +75,13 @@ LOCAL_CVES: list[dict] = [
 ]
 
 
-def _apache_in_range(version: Optional[str]) -> bool:
+def _apache_in_range(version: str | None) -> bool:
     if not version:
         return False
     return version_at_most(version, "2.4.49") and not version_at_most(version, "2.4.48")
 
 
-def local_lookup(product: Optional[str], version: Optional[str]) -> list[Vulnerability]:
+def local_lookup(product: str | None, version: str | None) -> list[Vulnerability]:
     if not product:
         return []
     out = []
@@ -105,7 +104,7 @@ def local_lookup(product: Optional[str], version: Optional[str]) -> list[Vulnera
     return out
 
 
-def _extract_version_number(version_string: Optional[str]) -> Optional[str]:
+def _extract_version_number(version_string: str | None) -> str | None:
     if not version_string:
         return None
     parts = version_string.split()

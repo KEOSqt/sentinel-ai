@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -18,16 +18,16 @@ class Service(BaseModel):
     port: int
     protocol: str = "tcp"
     service: str = "unknown"
-    product: Optional[str] = None
-    version: Optional[str] = None
+    product: str | None = None
+    version: str | None = None
     state: str = "open"
 
 
 class Asset(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     ip: str
-    hostname: Optional[str] = None
-    os: Optional[str] = None
+    hostname: str | None = None
+    os: str | None = None
     services: list[Service] = Field(default_factory=list)
     exposure: str = "unknown"
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -37,7 +37,7 @@ class Evidence(BaseModel):
     source: str = "unknown"
     evidence_type: str = "unknown"
     data: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -45,7 +45,7 @@ class SecurityEvidence(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     source: str = "unknown"
     evidence_type: str = "unknown"
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     assets: list[Asset] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -60,9 +60,9 @@ class Confidence(str, Enum):
 class Vulnerability(BaseModel):
     id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     severity: Severity = Severity.MEDIUM
-    cvss: Optional[float] = None
+    cvss: float | None = None
     confidence: Confidence = Confidence.UNKNOWN
     references: list[str] = Field(default_factory=list)
 
@@ -80,15 +80,15 @@ class Finding(BaseModel):
     severity: Severity = Severity.MEDIUM
     risk_score: float = 0.0
     confidence: Confidence = Confidence.UNKNOWN
-    asset: Optional[Asset] = None
-    affected_service: Optional[Service] = None
+    asset: Asset | None = None
+    affected_service: Service | None = None
     evidence: list[Evidence] = Field(default_factory=list)
     rationale: str = ""
     remediation: str = ""
     references: list[str] = Field(default_factory=list)
     vulnerabilities: list[Vulnerability] = Field(default_factory=list)
     status: FindingStatus = FindingStatus.OPEN
-    ai_analysis: Optional[dict[str, Any]] = None
+    ai_analysis: dict[str, Any] | None = None
 
 
 class AIAnalysis(BaseModel):

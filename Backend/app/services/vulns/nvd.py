@@ -1,7 +1,6 @@
 import json
 import urllib.parse
 import urllib.request
-from typing import Optional
 
 from app.core.config import settings
 from app.models import Confidence, Severity, Vulnerability
@@ -9,7 +8,7 @@ from app.models import Confidence, Severity, Vulnerability
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 
-def lookup(product: Optional[str], version: Optional[str]) -> list[Vulnerability]:
+def lookup(product: str | None, version: str | None) -> list[Vulnerability]:
     """Query NVD for keyword-based CVE matches. Returns [] on any failure."""
     if not settings.nvd_enabled or not product:
         return []
@@ -35,7 +34,7 @@ def lookup(product: Optional[str], version: Optional[str]) -> list[Vulnerability
         metrics = cve.get("metrics", {})
         cvss = None
         for key in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
-            if key in metrics and metrics[key]:
+            if metrics.get(key):
                 try:
                     cvss = float(metrics[key][0]["cvssData"]["baseScore"])
                 except (KeyError, IndexError, TypeError, ValueError):

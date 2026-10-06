@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from defusedxml import ElementTree as DET
@@ -34,7 +34,7 @@ class NmapParser:
         start_ts: datetime | None = None
         if root.get("start"):
             try:
-                start_ts = datetime.fromtimestamp(int(root.get("start")), tz=timezone.utc)
+                start_ts = datetime.fromtimestamp(int(root.get("start")), tz=UTC)
             except (ValueError, OSError):
                 start_ts = None
 
@@ -96,7 +96,7 @@ class NmapParser:
         return SecurityEvidence(
             source="nmap",
             evidence_type="network_scan",
-            timestamp=start_ts or datetime.now(timezone.utc),
+            timestamp=start_ts or datetime.now(UTC),
             assets=assets,
             metadata={"scanner": "nmap", "scan_start": scan_start, "asset_count": len(assets)},
         )

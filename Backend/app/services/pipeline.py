@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.db import SessionLocal, dumps, loads, ReportRecord, ScanRecord
+from app.db import ReportRecord, ScanRecord, SessionLocal, dumps, loads
 from app.models import Finding, SecurityEvidence
-from app.parsers.nmap import NmapParseError, NmapParser
+from app.parsers.nmap import NmapParser
 from app.services import engine
 from app.services.ai.analyst import analyze_security_posture
 
@@ -88,7 +87,7 @@ def create_report(scan_id: str) -> ReportRecord | None:
         "",
         f"- Scan: {record.id}",
         f"- Source: {record.source}",
-        f"- Generated: {datetime.now(timezone.utc).isoformat()}",
+        f"- Generated: {datetime.now(UTC).isoformat()}",
         f"- Assets: {record.asset_count}",
         f"- Findings: {record.finding_count}",
         "",

@@ -1,6 +1,13 @@
-from typing import Any
 
-from app.models import Asset, Confidence, Evidence, Finding, Severity, Service, Vulnerability
+from app.models import (
+    Asset,
+    Confidence,
+    Evidence,
+    Finding,
+    Service,
+    Severity,
+    Vulnerability,
+)
 from app.services.vulns.local import _extract_version_number, version_at_most
 
 

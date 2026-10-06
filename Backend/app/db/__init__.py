@@ -1,8 +1,8 @@
 import json
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import create_engine, DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.core.config import settings
@@ -17,12 +17,12 @@ class ScanRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     source: Mapped[str] = mapped_column(String, default="nmap")
-    filename: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    filename: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="completed")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     evidence_json: Mapped[str] = mapped_column(Text, default="{}")
     findings_json: Mapped[str] = mapped_column(Text, default="[]")
-    analysis_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    analysis_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     asset_count: Mapped[int] = mapped_column(Integer, default=0)
     finding_count: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -32,7 +32,7 @@ class ReportRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     scan_id: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     content: Mapped[str] = mapped_column(Text, default="")
 
 

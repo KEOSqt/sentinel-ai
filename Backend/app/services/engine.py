@@ -1,8 +1,7 @@
-from app.models import Asset, Finding, SecurityEvidence
-from app.services import normalization
+from app.models import Finding, SecurityEvidence
+from app.services import normalization, vulns
 from app.services.correlation import RULES
-from app.services import vulns
-from app.services.risk import score_risk, band_for
+from app.services.risk import score_risk
 
 
 def analyze(evidence: SecurityEvidence) -> list[Finding]:
