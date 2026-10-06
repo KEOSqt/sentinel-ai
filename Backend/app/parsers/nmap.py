@@ -1,84 +1,114 @@
-import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
 
-from app.schemas.evidence import Asset, SecurityEvidence, Service
+from defusedxml import ElementTree as DET
+from defusedxml.common import DefusedXmlException
+
+from app.models import Asset, SecurityEvidence, Service
+
+
+class NmapParseError(Exception):
+    pass
 
 
 class NmapParser:
+    def parse_file(self, file_path: str | Path) -> SecurityEvidence:
+        try:
+            return self.parse_bytes(Path(file_path).read_bytes())
+        except OSError as exc:
+            raise NmapParseError(f"cannot read file: {exc}") from exc
 
-    def parse(self, file_path: str) -> SecurityEvidence:
-        tree = ET.parse(file_path)
-        root = tree.getroot()
+    def parse_bytes(self, payload: bytes) -> SecurityEvidence:
+        try:
+            root = DET.fromstring(payload)
+        except DefusedXmlException as exc:
+            raise NmapParseError(f"unsafe XML rejected: {exc}") from exc
+        except Exception as exc:
+            raise NmapParseError(f"invalid XML: {exc}") from exc
 
-        assets = []
+        if root.tag != "nmaprun":
+            raise NmapParseError("not an Nmap XML document (missing <nmaprun>)")
+
+        assets: list[Asset] = []
+        scan_start = root.get("startstr") or None
+        start_ts: datetime | None = None
+        if root.get("start"):
+            try:
+                start_ts = datetime.fromtimestamp(int(root.get("start")), tz=timezone.utc)
+            except (ValueError, OSError):
+                start_ts = None
 
         for host in root.findall("host"):
-
-            # Get IP address
-            address_element = host.find("address")
-
-            if address_element is None:
+            status = host.find("status")
+            if status is not None and status.get("state") not in (None, "up"):
                 continue
 
-            ip = address_element.get("addr")
+            addresses = [a.get("addr") for a in host.findall("address") if a.get("addr")]
+            ip = next((a for a in addresses if _looks_like_ip(a)), addresses[0] if addresses else None)
+            if not ip:
+                continue
 
-            # Get hostname
             hostname = None
+            hn = host.find("./hostnames/hostname")
+            if hn is not None:
+                hostname = hn.get("name")
 
-            hostname_element = host.find("./hostnames/hostname")
-
-            if hostname_element is not None:
-                hostname = hostname_element.get("name")
-
-            # Get operating system
             os_name = None
+            os_match = host.find("./os/osmatch")
+            if os_match is not None:
+                os_name = os_match.get("name")
 
-            os_element = host.find("./os/osmatch")
-
-            if os_element is not None:
-                os_name = os_element.get("name")
-
-            # Get services
-            services = []
-
+            services: list[Service] = []
             for port_element in host.findall("./ports/port"):
-
-                port = int(port_element.get("portid"))
-                protocol = port_element.get("protocol")
+                state_element = port_element.find("state")
+                state = state_element.get("state") if state_element is not None else "unknown"
 
                 service_element = port_element.find("service")
-
                 if service_element is None:
                     continue
 
-                service_name = service_element.get("name")
-                product = service_element.get("product")
-                version = service_element.get("version")
-
-                # Build a readable version string
-                if product and version:
-                    service_version = f"{product} {version}"
-                elif product:
-                    service_version = product
-                else:
-                    service_version = version
+                try:
+                    port = int(port_element.get("portid", "0"))
+                except ValueError:
+                    continue
 
                 services.append(
                     Service(
                         port=port,
-                        protocol=protocol,
-                        service=service_name,
-                        version=service_version,
+                        protocol=port_element.get("protocol", "tcp"),
+                        service=service_element.get("name", "unknown"),
+                        product=service_element.get("product"),
+                        version=_build_version(service_element),
+                        state=state,
                     )
                 )
 
-            # Create the asset
-            asset = Asset(
-                ip=ip,
-                hostname=hostname,
-                os=os_name,
-                services=services,
+            assets.append(
+                Asset(
+                    ip=ip,
+                    hostname=hostname,
+                    os=os_name,
+                    services=services,
+                    metadata={"addresses": addresses, "state": (status.get("state") if status is not None else "unknown")},
+                )
             )
 
-            assets.append(asset)
+        return SecurityEvidence(
+            source="nmap",
+            evidence_type="network_scan",
+            timestamp=start_ts or datetime.now(timezone.utc),
+            assets=assets,
+            metadata={"scanner": "nmap", "scan_start": scan_start, "asset_count": len(assets)},
+        )
 
-        return SecurityEvidence(assets=assets)
+
+def _build_version(service_element) -> str | None:
+    product = service_element.get("product")
+    version = service_element.get("version")
+    extrainfo = service_element.get("extrainfo")
+    parts = [p for p in (product, version, extrainfo) if p]
+    return " ".join(parts) if parts else None
+
+
+def _looks_like_ip(value: str) -> bool:
+    return value.replace(".", "").replace(":", "").isalnum() and any(c.isdigit() for c in value)
