@@ -27,6 +27,15 @@ class ScanRecord(Base):
     finding_count: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class ReportRecord(Base):
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    scan_id: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    content: Mapped[str] = mapped_column(Text, default="")
+
+
 engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 

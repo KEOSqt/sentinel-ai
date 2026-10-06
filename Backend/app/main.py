@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import analysis, assets, evidence, findings, reports
 from app.core.config import settings
 from app.db import init_db
 
@@ -17,6 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(evidence.router)
+app.include_router(analysis.router)
+app.include_router(assets.router)
+app.include_router(findings.router)
+app.include_router(reports.router)
 
 
 @app.on_event("startup")

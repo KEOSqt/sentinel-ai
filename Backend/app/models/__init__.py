@@ -89,3 +89,12 @@ class Finding(BaseModel):
     vulnerabilities: list[Vulnerability] = Field(default_factory=list)
     status: FindingStatus = FindingStatus.OPEN
     ai_analysis: Optional[dict[str, Any]] = None
+
+
+class AIAnalysis(BaseModel):
+    summary: str = ""
+    risk_assessment: str = ""
+    priority_findings: list[str] = Field(default_factory=list)
+    attack_paths: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
