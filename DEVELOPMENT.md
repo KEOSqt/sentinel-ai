@@ -16,7 +16,9 @@ Backend/
   tests/            # pytest: parser, engine, API pipeline; fixtures/sample_nmap.xml
 frontend/
   src/app/          # Next.js app router pages (overview, assets, findings, scan, reports)
-  src/lib/          # api client + shared UI components
+                    # + error.tsx / global-error.tsx / loading.tsx / not-found.tsx boundaries
+  src/components/   # interactive client components (ApiErrorState)
+  src/lib/          # api client + server-safe shared UI primitives
 ```
 
 ## Commands
@@ -46,3 +48,29 @@ and scores them automatically.
 
 - Tests set `SENTINEL_DATABASE_URL=sqlite:///./test.db` and `SENTINEL_NVD_ENABLED=false` for determinism.
 - The AI analyst falls back to deterministic structured output when no LLM provider is reachable.
+
+## Frontend Data Fetching
+
+`apiGet` / `apiPost` in `src/lib/api.ts` **never throw and never return `null`**. They
+resolve to `ApiResult<T>`:
+
+```ts
+const result = await apiGet<Finding[]>("/api/v1/findings");
+if (!result.ok) return <ApiErrorState errors={[result.error]} />;
+// result.data is T
+```
+
+This keeps two states that look identical in the UI but mean opposite things:
+
+| Situation | Render |
+| --- | --- |
+| Backend unreachable / slow / erroring | `<ApiErrorState>` (with Retry) |
+| Backend answered, no records | `<EmptyState>` |
+
+Never collapse both into a falsy check — that is what previously made a stopped
+backend look like an empty dashboard. Requests abort after 10s
+(`REQUEST_TIMEOUT_MS`) so a hung backend surfaces as an error instead of an
+indefinite load.
+
+`src/app/error.tsx` and `global-error.tsx` catch *unexpected render* failures.
+Both are Client Components, per the Next.js file conventions.

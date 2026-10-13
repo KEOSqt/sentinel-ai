@@ -1,6 +1,8 @@
-import { apiGet, Finding } from "@/lib/api";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ApiErrorState } from "@/components/api-error-state";
+import { apiGet, type Finding } from "@/lib/api";
 import { SeverityBadge } from "@/lib/ui";
-
 
 export const instant = false;
 
@@ -10,11 +12,25 @@ export default async function FindingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const finding = await apiGet<Finding>(`/api/v1/findings/${id}`);
+  const result = await apiGet<Finding>(`/api/v1/findings/${id}`);
 
-  if (!finding) {
-    return <p className="text-sm text-slate-500">Finding not found.</p>;
+  // A real 404 from the backend means the finding genuinely does not exist.
+  // Anything else is an infrastructure problem and must not be reported as
+  // "not found".
+  if (!result.ok) {
+    if (result.error.kind === "http" && result.error.status === 404) notFound();
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-white">Finding</h1>
+        <ApiErrorState errors={[result.error]} />
+        <Link className="inline-block text-sm text-sky-400 hover:underline" href="/findings">
+          Back to findings
+        </Link>
+      </div>
+    );
   }
+
+  const finding = result.data;
 
   return (
     <div className="space-y-6">
@@ -68,7 +84,9 @@ export default async function FindingDetailPage({
           <h2 className="mb-1 text-lg font-medium text-white">References</h2>
           <ul className="list-disc pl-5 text-sm text-sky-400">
             {finding.references.map((r) => (
-              <li key={r}><a href={r}>{r}</a></li>
+              <li key={r}>
+                <a href={r} target="_blank" rel="noreferrer noopener">{r}</a>
+              </li>
             ))}
           </ul>
         </section>

@@ -1,21 +1,36 @@
-import { apiGet, Asset, Finding, Scan } from "@/lib/api";
-import { Card, SeverityBadge } from "@/lib/ui";
-
+import { ApiErrorState } from "@/components/api-error-state";
+import { apiGet, type ApiError, type Asset, type Finding, type Scan } from "@/lib/api";
+import { Card, EmptyState, SeverityBadge } from "@/lib/ui";
 
 export const instant = false;
 
+const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] as const;
+
 export default async function OverviewPage() {
-  const [assets, findings, scans] = await Promise.all([
+  const [assetsResult, findingsResult, scansResult] = await Promise.all([
     apiGet<Asset[]>("/api/v1/assets"),
     apiGet<Finding[]>("/api/v1/findings"),
     apiGet<Scan[]>("/api/v1/scans"),
   ]);
 
-  const assetList = assets ?? [];
-  const findingList = findings ?? [];
-  const scanList = scans ?? [];
+  const results = [assetsResult, findingsResult, scansResult];
+  const failures = results.filter((r) => !r.ok).map((r) => (r as { ok: false; error: ApiError }).error);
+  const totalFailure = failures.length === results.length;
 
-  const counts = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"].map((sev) => ({
+  if (totalFailure) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-white">Security Overview</h1>
+        <ApiErrorState errors={failures} />
+      </div>
+    );
+  }
+
+  const assetList = assetsResult.ok ? assetsResult.data : [];
+  const findingList = findingsResult.ok ? findingsResult.data : [];
+  const scanList = scansResult.ok ? scansResult.data : [];
+
+  const counts = SEVERITIES.map((sev) => ({
     severity: sev,
     count: findingList.filter((f) => f.severity === sev).length,
   }));
@@ -24,6 +39,8 @@ export default async function OverviewPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold text-white">Security Overview</h1>
+
+      {failures.length > 0 && <ApiErrorState title="Some data could not be loaded" errors={failures} />}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card title="Top Risk Score" value={topRisk} />
@@ -46,31 +63,38 @@ export default async function OverviewPage() {
 
       <section>
         <h2 className="mb-3 text-lg font-medium text-white">Recent Scans</h2>
-        {scanList.length === 0 ? (
-          <p className="text-sm text-slate-500">No scans yet. Upload Nmap XML on the Scan page.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-500">
-                <th className="pb-2">Filename</th>
-                <th className="pb-2">Status</th>
-                <th className="pb-2">Assets</th>
-                <th className="pb-2">Findings</th>
-                <th className="pb-2">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scanList.slice(0, 5).map((s) => (
-                <tr key={s.id} className="border-t border-slate-800">
-                  <td className="py-2 text-slate-200">{s.filename ?? s.id}</td>
-                  <td className="py-2">{s.status}</td>
-                  <td className="py-2">{s.asset_count}</td>
-                  <td className="py-2">{s.finding_count}</td>
-                  <td className="py-2 text-slate-500">{s.created_at ? new Date(s.created_at).toLocaleString() : "â€”"}</td>
+        {scansResult.ok && scanList.length === 0 ? (
+          <EmptyState
+            title="No scans yet"
+            hint="Upload an Nmap XML file on the Scan page to populate this dashboard."
+          />
+        ) : scansResult.ok ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500">
+                  <th scope="col" className="pb-2">Filename</th>
+                  <th scope="col" className="pb-2">Status</th>
+                  <th scope="col" className="pb-2">Assets</th>
+                  <th scope="col" className="pb-2">Findings</th>
+                  <th scope="col" className="pb-2">Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {scanList.slice(0, 5).map((s) => (
+                  <tr key={s.id} className="border-t border-slate-800">
+                    <td className="py-2 text-slate-200">{s.filename ?? s.id}</td>
+                    <td className="py-2">{s.status}</td>
+                    <td className="py-2">{s.asset_count}</td>
+                    <td className="py-2">{s.finding_count}</td>
+                    <td className="py-2 text-slate-500">{s.created_at ? new Date(s.created_at).toLocaleString() : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <ApiErrorState title="Recent scans unavailable" errors={[(scansResult as { ok: false; error: ApiError }).error]} />
         )}
       </section>
     </div>
