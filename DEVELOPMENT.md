@@ -17,7 +17,7 @@ Backend/
 frontend/
   src/app/          # Next.js app router pages (overview, assets, findings, scan, reports)
                     # + error.tsx / global-error.tsx / loading.tsx / not-found.tsx boundaries
-  src/components/   # interactive client components (ApiErrorState)
+  src/components/   # interactive client components (ApiErrorState, ReportsPanel)
   src/lib/          # api client + server-safe shared UI primitives
 ```
 

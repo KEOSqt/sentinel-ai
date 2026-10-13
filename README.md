@@ -9,10 +9,10 @@ Sentinel-AI is an AI-powered cybersecurity analysis and vulnerability intelligen
 - Rule-based correlation engine (extensible `Rule` interface)
 - Deterministic risk engine (0–100 with confidence/exposure factors)
 - Vulnerability intelligence: local CVE dataset + NVD API with graceful offline fallback
-- AI security analyst: OpenAI/Anthropic/Ollama with validated structured output and deterministic local fallback
+- AI security analyst: OpenAI/Ollama with validated structured output and deterministic local fallback
 - Lightweight RAG over bundled security knowledge documents
 - Next.js dashboard: overview, assets, findings, finding detail, scan upload, reports
-- Docker Compose deployment
+- Docker Compose deployment with healthchecks and CORS configured from the environment
 
 ## Architecture
 
@@ -73,6 +73,7 @@ See `.env.example`. Keys:
 | `SENTINEL_NVD_ENABLED` / `SENTINEL_NVD_API_KEY` | Vulnerability lookup |
 | `SENTINEL_OPENAI_API_KEY` / `SENTINEL_ANTHROPIC_API_KEY` | LLM provider keys |
 | `SENTINEL_OLLAMA_BASE_URL` | Local LLM fallback |
+| `SENTINEL_CORS_ORIGINS` | Allowed browser origins (JSON list, default localhost:3000) |
 | `NEXT_PUBLIC_API_URL` / `API_INTERNAL_URL` | Frontend → backend URLs |
 
 ## Usage
