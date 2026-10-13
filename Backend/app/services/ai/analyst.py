@@ -7,6 +7,19 @@ from app.models import AIAnalysis, Asset, Finding
 from app.services.ai.rag import KnowledgeBase
 
 
+def active_provider() -> str:
+    """The provider ``_call_llm`` will actually try first.
+
+    Note: ``SENTINEL_ANTHROPIC_API_KEY`` is accepted by the settings layer and
+    documented in the README, but ``_call_llm`` never calls Anthropic. This
+    deliberately reports only what the code really does rather than what an
+    operator might expect from a configured key.
+    """
+    if settings.openai_api_key:
+        return "openai"
+    return "ollama"
+
+
 def build_payload(assets: list[Asset], findings: list[Finding]) -> dict:
     return {
         "assets": [a.model_dump(mode="json") for a in assets],

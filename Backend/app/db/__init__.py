@@ -2,7 +2,8 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Integer, String, Text, create_engine
+from sqlalchemy import DateTime, Integer, String, Text, create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.core.config import settings
@@ -46,6 +47,16 @@ def init_db() -> None:
 
 def get_session() -> Session:
     return SessionLocal()
+
+
+def check_database() -> bool:
+    """True when the configured database accepts a trivial query."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return True
+    except SQLAlchemyError:
+        return False
 
 
 def dumps(obj: Any) -> str:
