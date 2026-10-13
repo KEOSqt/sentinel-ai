@@ -30,6 +30,9 @@ export default async function FindingsPage() {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">
+              Security findings ordered by risk score, highest first
+            </caption>
             <thead>
               <tr className="text-left text-slate-500">
                 <th scope="col" className="pb-2">Severity</th>

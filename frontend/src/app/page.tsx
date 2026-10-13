@@ -71,6 +71,7 @@ export default async function OverviewPage() {
         ) : scansResult.ok ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
+              <caption className="sr-only">Most recent scans and their result counts</caption>
               <thead>
                 <tr className="text-left text-slate-500">
                   <th scope="col" className="pb-2">Filename</th>

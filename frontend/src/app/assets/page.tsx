@@ -29,6 +29,9 @@ export default async function AssetsPage() {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">
+              Discovered assets with hostname, operating system, and open services
+            </caption>
             <thead>
               <tr className="text-left text-slate-500">
                 <th scope="col" className="pb-2">IP</th>
