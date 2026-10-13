@@ -149,3 +149,15 @@ export type Scan = {
   asset_count: number;
   finding_count: number;
 };
+
+/** Metadata-only entry as returned by GET /api/v1/reports. */
+export type ReportSummary = {
+  id: string;
+  scan_id: string;
+  created_at?: string | null;
+};
+
+/** Full report, as returned by GET /api/v1/reports/{id} and POST /api/v1/reports. */
+export type Report = ReportSummary & {
+  content: string;
+};
