@@ -1,0 +1,6 @@
+# Development / CI tooling.
+# Runtime dependencies live in requirements.txt.
+-r requirements.txt
+
+ruff==0.15.1
+pytest-cov==7.0.0

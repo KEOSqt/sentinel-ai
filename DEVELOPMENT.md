@@ -25,13 +25,18 @@ frontend/
 
 | Task | Command |
 | --- | --- |
+| Install backend deps | `cd Backend && .venv\Scripts\python.exe -m pip install -r requirements-dev.txt` |
 | Run backend | `cd Backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reload` |
 | Run frontend | `cd frontend && npm run dev` |
 | Tests | `cd Backend && .venv\Scripts\python.exe -m pytest -q` |
+| Coverage | `cd Backend && .venv\Scripts\python.exe -m pytest -q --cov=app --cov-report=term-missing` |
 | Lint backend | `cd Backend && .venv\Scripts\ruff.exe check app tests` |
 | Typecheck frontend | `cd frontend && npm run build` |
 | Lint frontend | `cd frontend && npm run lint` |
 | Full stack | `docker compose up --build` |
+
+`requirements.txt` holds runtime dependencies; `requirements-dev.txt` layers
+`ruff` and `pytest-cov` on top for local development and CI.
 
 ## Adding a Correlation Rule
 
@@ -46,7 +51,7 @@ and scores them automatically.
 
 ## Notes
 
-- Tests set `SENTINEL_DATABASE_URL=sqlite:///./test.db` and `SENTINEL_NVD_ENABLED=false` for determinism.
+- Tests set `SENTINEL_DATABASE_URL=sqlite:///./test.db` and `SENTINEL_NVD_ENABLED=false` for determinism. That happens in `tests/conftest.py`, which pytest imports before any test module — `app` builds its settings at import time, so the env vars must be in place first.
 - The AI analyst falls back to deterministic structured output when no LLM provider is reachable.
 
 ## Frontend Data Fetching

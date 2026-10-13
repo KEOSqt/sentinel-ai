@@ -111,11 +111,15 @@ If no LLM provider is configured, a deterministic fallback analysis with the sam
 
 ```bash
 cd Backend
-pytest          # unit + integration tests
-ruff check app tests   # lint
+pip install -r requirements-dev.txt   # runtime deps + ruff, pytest-cov
+pytest --cov=app --cov-report=term-missing
+ruff check app tests                   # lint
 ```
 
 Frontend: `npm run build` (typecheck) and `npm run lint`.
+
+GitHub Actions runs both suites on every push and pull request
+(see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Documentation
 
