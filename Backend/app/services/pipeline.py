@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from sqlalchemy import select
+
 from app.db import ReportRecord, ScanRecord, SessionLocal, dumps, loads
 from app.models import Finding, SecurityEvidence
 from app.parsers.nmap import NmapParser
@@ -33,8 +35,6 @@ def get_scan(scan_id: str) -> ScanRecord | None:
 
 def latest_scan() -> ScanRecord | None:
     with SessionLocal() as session:
-        from sqlalchemy import select
-
         return session.execute(select(ScanRecord).order_by(ScanRecord.created_at.desc())).scalars().first()
 
 
@@ -47,9 +47,9 @@ def run_analysis(scan_id: str) -> ScanRecord | None:
     assets = engine.normalization.normalize_evidence(evidence).assets
     ai = analyze_security_posture(assets, findings)
 
-    for f in findings:
-        f.ai_analysis = ai.model_dump()
-
+    # The analysis is stored once, on the scan (analysis_json). Embedding it in
+    # every finding duplicated the same blob N times in findings_json and in
+    # every /findings response; the detail endpoint attaches it back on read.
     record.findings_json = dumps([f.model_dump(mode="json") for f in findings])
     record.analysis_json = dumps(ai.model_dump())
     record.finding_count = len(findings)
@@ -65,8 +65,6 @@ def run_analysis(scan_id: str) -> ScanRecord | None:
 
 
 def list_scans() -> list[ScanRecord]:
-    from sqlalchemy import select
-
     with SessionLocal() as session:
         return list(session.execute(select(ScanRecord).order_by(ScanRecord.created_at.desc())).scalars())
 
@@ -121,3 +119,16 @@ def create_report(scan_id: str) -> ReportRecord | None:
 def get_report(report_id: str) -> ReportRecord | None:
     with SessionLocal() as session:
         return session.get(ReportRecord, report_id)
+
+
+def list_reports(scan_id: str | None = None) -> list[ReportRecord]:
+    """Reports newest first, optionally filtered to a single scan.
+
+    The markdown content is deliberately excluded: the list endpoint only needs
+    metadata, and report bodies are large enough to dominate the payload.
+    """
+    with SessionLocal() as session:
+        query = select(ReportRecord)
+        if scan_id is not None:
+            query = query.where(ReportRecord.scan_id == scan_id)
+        return list(session.execute(query.order_by(ReportRecord.created_at.desc())).scalars())
