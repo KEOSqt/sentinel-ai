@@ -5,9 +5,29 @@ Base URL: `http://localhost:8000`. Interactive docs at `/docs`.
 ## Health
 
 ### GET /api/v1/health
+Also served (as an alias) at `GET /health`.
+
 ```json
-{ "status": "healthy" }
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "database": true,
+  "nvd_enabled": true,
+  "llm_provider": "ollama",
+  "cors_origins": ["http://localhost:3000"]
+}
 ```
+
+`llm_provider` reports the provider the analyst will actually try first, which
+is `openai` when `SENTINEL_OPENAI_API_KEY` is set and `ollama` otherwise.
+(`SENTINEL_ANTHROPIC_API_KEY` is accepted by the settings layer but is currently
+unused by the analyst.)
+
+## CORS
+
+Origins are configured with `SENTINEL_CORS_ORIGINS` as a JSON list. Credentialed
+requests are enabled automatically, except when the list contains `*` — the CORS
+spec forbids pairing a wildcard origin with credentials, and browsers reject it.
 
 ## Ingest evidence
 
@@ -57,12 +77,25 @@ Deduplicated assets aggregated across scans: `ip`, `hostname`, `os`, `services[]
 ## Findings
 
 ### GET /api/v1/findings
-All findings across scans, sorted by risk score descending.
+All findings across scans, sorted by risk score descending. The AI analysis is
+**not** included here; it belongs to the scan, not to each finding.
 
 ### GET /api/v1/findings/{id}
 Single finding with `title`, `description`, `severity`, `risk_score`, `confidence`, `asset`, `affected_service`, `evidence[]`, `rationale`, `remediation`, `references[]`, `status`, `ai_analysis`.
 
+`ai_analysis` here is the scan-level analysis, attached on read (`null` if the
+scan has not been analyzed).
+
 ## Reports
+
+### GET /api/v1/reports
+Lists reports newest first. Optional `?scan_id=` filter.
+
+```json
+[ { "id": "...", "scan_id": "...", "created_at": "..." } ]
+```
+
+Metadata only — the markdown body is omitted because it dominates the payload.
 
 ### POST /api/v1/reports
 ```json
