@@ -25,9 +25,17 @@ unused by the analyst.)
 
 ## CORS
 
-Origins are configured with `SENTINEL_CORS_ORIGINS` as a JSON list. Credentialed
-requests are enabled automatically, except when the list contains `*` — the CORS
-spec forbids pairing a wildcard origin with credentials, and browsers reject it.
+Origins are configured with `SENTINEL_CORS_ORIGINS`. Both of these work:
+
+```
+SENTINEL_CORS_ORIGINS=["http://localhost:3000","http://example.com"]   # JSON array
+SENTINEL_CORS_ORIGINS=http://localhost:3000,http://example.com        # comma-separated
+```
+
+Credentialed requests are enabled automatically, except when the list contains
+`*` — the CORS spec forbids pairing a wildcard origin with credentials, and
+browsers reject it. A malformed value is rejected at startup with a message
+showing the accepted formats.
 
 ## Ingest evidence
 

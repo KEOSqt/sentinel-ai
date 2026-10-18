@@ -66,3 +66,22 @@ jobs:
 
       - name: Build / typecheck
         run: npm run build
+
+  docker:
+    name: Docker (compose build)
+    runs-on: ubuntu-latest
+    # Only build images if the code itself is sound; no point paying for a
+    # slow image build on a pull request whose tests already fail.
+    needs: [backend, frontend]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      # Catches a malformed compose file in seconds, with a clear error.
+      - name: Validate compose file
+        run: docker compose config --quiet
+
+      # Catches a broken Dockerfile or a missing build context. These images are
+      # the documented way to run this project, so they must keep building.
+      - name: Build images
+        run: docker compose build
