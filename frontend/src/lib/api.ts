@@ -104,6 +104,14 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResul
   });
 }
 
+export async function apiPatch<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
+  return request<T>(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
 export type Asset = {
   id: string;
   ip: string;
@@ -117,6 +125,7 @@ export type FindingStatus = "open" | "acknowledged" | "resolved";
 
 export type Finding = {
   id: string;
+  scan_id?: string;
   title: string;
   description: string;
   severity: "INFO" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -129,6 +138,8 @@ export type Finding = {
   remediation: string;
   references: string[];
   status: FindingStatus;
+  triage_note?: string;
+  triaged_at?: string | null;
   vulnerabilities?: { id: string; title: string; severity: string; cvss?: number | null }[];
   ai_analysis?: {
     summary: string;

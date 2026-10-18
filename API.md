@@ -88,11 +88,36 @@ Deduplicated assets aggregated across scans: `ip`, `hostname`, `os`, `services[]
 All findings across scans, sorted by risk score descending. The AI analysis is
 **not** included here; it belongs to the scan, not to each finding.
 
+Optional query parameters:
+
+| Parameter | Example | Effect |
+| --- | --- | --- |
+| `status` | `?status=acknowledged` | Only findings with that triage status |
+| `scan_id` | `?scan_id=<uuid>` | Only findings from that scan |
+
+Each finding carries `scan_id`, `status`, `triage_note` and `triaged_at`.
+
 ### GET /api/v1/findings/{id}
-Single finding with `title`, `description`, `severity`, `risk_score`, `confidence`, `asset`, `affected_service`, `evidence[]`, `rationale`, `remediation`, `references[]`, `status`, `ai_analysis`.
+Single finding with `title`, `description`, `severity`, `risk_score`, `confidence`, `asset`, `affected_service`, `evidence[]`, `rationale`, `remediation`, `references[]`, `status`, `triage_note`, `triaged_at`, `ai_analysis`.
 
 `ai_analysis` here is the scan-level analysis, attached on read (`null` if the
 scan has not been analyzed).
+
+### PATCH /api/v1/findings/{id}
+Record an analyst decision about a finding.
+
+```json
+{ "status": "acknowledged", "note": "Tracked in TICKET-42" }
+```
+
+`status` must be `open`, `acknowledged` or `resolved` (anything else is
+rejected with `422`). `note` is optional, defaults to `""`, max 2000 characters.
+Returns the updated finding. Errors: `404` finding not found.
+
+**Triage survives re-analysis.** Findings are regenerated with new UUIDs every
+time a scan is analysed, so status is keyed on a content fingerprint (scan id,
+title, asset ip, service port and protocol) rather than the finding id.
+Re-analysing the same scan therefore keeps every acknowledgement.
 
 ## Reports
 

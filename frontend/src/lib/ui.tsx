@@ -14,6 +14,20 @@ export function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  open: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+  acknowledged: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+  resolved: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+};
+
+export function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status] ?? STATUS_COLORS.open}`}>
+      {status}
+    </span>
+  );
+}
+
 export function Card({ title, value, subtitle }: { title: string; value: string | number; subtitle?: string }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
