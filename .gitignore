@@ -1,0 +1,36 @@
+# Environment and secrets.
+# The README instructs `cp .env.example .env` from the repo root, and there was
+# no root .gitignore, so a real .env was untracked but not ignored — one
+# `git add .` away from publishing API keys.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+
+# SQLite databases. The app resolves the path relative to the working
+# directory, so these can land at the root as well as in Backend/.
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
