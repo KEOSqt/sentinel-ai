@@ -122,9 +122,15 @@ export default async function AssetDetailPage({
                     </td>
                     <td className="py-2">{f.risk_score}</td>
                     <td className="py-2"><StatusBadge status={f.status} /></td>
-                    {/* The same title can be raised by several scans, so say which. */}
+                    {/* The same title can be raised by several scans, so link to the one that raised it. */}
                     <td className="py-2 font-mono text-xs text-slate-500">
-                      {f.scan_id ? f.scan_id.slice(0, 8) : "—"}
+                      {f.scan_id ? (
+                        <Link className="text-sky-400 hover:underline" href={`/scans/${f.scan_id}`}>
+                          {f.scan_id.slice(0, 8)}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}

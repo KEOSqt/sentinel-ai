@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { apiGet, apiPost, apiUrl, type Report, type ReportSummary } from "@/lib/api";
 
@@ -129,7 +130,11 @@ export function ReportsPanel({ initialReports }: { initialReports: ReportSummary
                     <td className="py-2 text-slate-500">
                       {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
                     </td>
-                    <td className="py-2 font-mono text-slate-300">{r.scan_id}</td>
+                    <td className="py-2 font-mono text-slate-300">
+                      <Link className="text-sky-400 hover:underline" href={`/scans/${r.scan_id}`}>
+                        {r.scan_id.slice(0, 8)}
+                      </Link>
+                    </td>
                     <td className="py-2">
                       <button
                         type="button"

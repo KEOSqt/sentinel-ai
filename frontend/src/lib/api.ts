@@ -161,14 +161,7 @@ export type Finding = {
   triage_note?: string;
   triaged_at?: string | null;
   vulnerabilities?: { id: string; title: string; severity: string; cvss?: number | null }[];
-  ai_analysis?: {
-    summary: string;
-    risk_assessment: string;
-    priority_findings: string[];
-    attack_paths: string[];
-    recommendations: string[];
-    missing_information: string[];
-  } | null;
+  ai_analysis?: AIAnalysis | null;
 };
 
 export type Scan = {
@@ -179,6 +172,27 @@ export type Scan = {
   created_at?: string | null;
   asset_count: number;
   finding_count: number;
+};
+
+/** The AI analyst's read of a scan — stored once per scan, not per finding. */
+export type AIAnalysis = {
+  summary: string;
+  risk_assessment: string;
+  priority_findings: string[];
+  attack_paths: string[];
+  recommendations: string[];
+  missing_information: string[];
+};
+
+/** As returned by GET /api/v1/scans/{id}. */
+export type ScanDetail = {
+  scan: Scan;
+  /** Null for a scan that has been uploaded but not analysed yet. */
+  analysis: AIAnalysis | null;
+  /** This scan's own evidence, not the cross-scan merged view. */
+  assets: Asset[];
+  findings: Finding[];
+  counts: Record<FindingStatus, number>;
 };
 
 /** Metadata-only entry as returned by GET /api/v1/reports. */

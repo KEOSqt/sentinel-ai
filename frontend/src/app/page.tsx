@@ -1,6 +1,7 @@
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type ApiError, type Asset, type Finding, type Scan } from "@/lib/api";
 import { Card, EmptyState, SeverityBadge } from "@/lib/ui";
+import Link from "next/link";
 
 export const instant = false;
 
@@ -84,7 +85,9 @@ export default async function OverviewPage() {
               <tbody>
                 {scanList.slice(0, 5).map((s) => (
                   <tr key={s.id} className="border-t border-slate-800">
-                    <td className="py-2 text-slate-200">{s.filename ?? s.id}</td>
+                    <td className="py-2 text-slate-200">
+                      <Link className="text-sky-400 hover:underline" href={`/scans/${s.id}`}>{s.filename ?? s.id}</Link>
+                    </td>
                     <td className="py-2">{s.status}</td>
                     <td className="py-2">{s.asset_count}</td>
                     <td className="py-2">{s.finding_count}</td>

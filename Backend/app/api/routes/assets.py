@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from app.db import ScanRecord
 from app.models import SecurityEvidence
 from app.services import findings as finding_service
-from app.services import pipeline, triage
+from app.services import pipeline
 
 router = APIRouter(prefix="/api/v1/assets", tags=["assets"])
 
@@ -42,18 +42,6 @@ def _scan_views(scans: list[ScanRecord]) -> tuple[dict[str, dict], dict[str, set
     return merged, observed_by
 
 
-def _scan_summary(scan: ScanRecord) -> dict:
-    return {
-        "id": scan.id,
-        "source": scan.source,
-        "filename": scan.filename,
-        "status": scan.status,
-        "created_at": scan.created_at.isoformat() if scan.created_at else None,
-        "asset_count": scan.asset_count,
-        "finding_count": scan.finding_count,
-    }
-
-
 @router.get("")
 def list_assets():
     merged, _ = _scan_views(pipeline.list_scans())
@@ -85,15 +73,13 @@ def get_asset(ip: str):
         if (finding.get("asset") or {}).get("ip") == ip
     ]
 
-    counts = {triage.DEFAULT_STATUS: 0, "acknowledged": 0, "resolved": 0}
-    for finding in asset_findings:
-        counts[finding["status"]] = counts.get(finding["status"], 0) + 1
+    counts = finding_service.count_by_status(asset_findings)
 
     return {
         "asset": asset,
         "first_seen": ordered[0].created_at.isoformat() if ordered else None,
         "last_seen": ordered[-1].created_at.isoformat() if ordered else None,
-        "scans": [_scan_summary(s) for s in reversed(ordered)],  # newest first, like every other list
+        "scans": [pipeline.scan_summary(s) for s in reversed(ordered)],  # newest first, like every other list
         "findings": asset_findings,
         "counts": counts,
     }
