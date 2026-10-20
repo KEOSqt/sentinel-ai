@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
+import { FindingTriage } from "@/components/finding-triage";
 import { apiGet, type Finding } from "@/lib/api";
-import { SeverityBadge } from "@/lib/ui";
+import { SeverityBadge, StatusBadge } from "@/lib/ui";
 
 export const instant = false;
 
@@ -42,9 +43,32 @@ export default async function FindingDetailPage({
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div><p className="text-xs text-slate-500">Risk Score</p><p className="text-xl text-white">{finding.risk_score}</p></div>
         <div><p className="text-xs text-slate-500">Confidence</p><p className="text-xl text-white">{finding.confidence}</p></div>
-        <div><p className="text-xs text-slate-500">Asset</p><p className="text-xl font-mono text-white">{finding.asset?.ip ?? "—"}</p></div>
-        <div><p className="text-xs text-slate-500">Status</p><p className="text-xl text-white">{finding.status}</p></div>
+        <div>
+          <p className="text-xs text-slate-500">Asset</p>
+          <p className="text-xl font-mono">
+            {finding.asset?.ip ? (
+              <Link className="text-white hover:text-sky-400 hover:underline" href={`/assets/${encodeURIComponent(finding.asset.ip)}`}>
+                {finding.asset.ip}
+              </Link>
+            ) : (
+              <span className="text-white">—</span>
+            )}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500">Status</p>
+          <p className="mt-2 text-xl">
+            <StatusBadge status={finding.status} />
+          </p>
+        </div>
       </div>
+
+      <FindingTriage
+        key={finding.id}
+        findingId={finding.id}
+        initialStatus={finding.status}
+        initialNote={finding.triage_note ?? ""}
+      />
 
       <section>
         <h2 className="mb-1 text-lg font-medium text-white">Description</h2>

@@ -1,31 +1,41 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
-from app.services import pipeline
+from app.models import FindingStatus
+from app.services import findings as finding_service
 
 router = APIRouter(prefix="/api/v1/findings", tags=["findings"])
 
 
+class FindingUpdate(BaseModel):
+    status: FindingStatus
+    note: str = Field(default="", max_length=2000)
+
+
 @router.get("")
-def list_findings():
-    findings = []
-    for scan in pipeline.list_scans():
-        for finding in pipeline.loads(scan.findings_json):
-            # The analysis lives on the scan, not on each finding. Older scans
-            # may still carry a per-finding copy; drop it so the list payload
-            # stays small.
-            finding.pop("ai_analysis", None)
-            findings.append(finding)
-    findings.sort(key=lambda f: f.get("risk_score", 0), reverse=True)
-    return findings
+def list_findings(status: FindingStatus | None = None, scan_id: str | None = None):
+    return finding_service.list_findings(
+        status=status.value if status is not None else None,
+        scan_id=scan_id,
+    )
 
 
 @router.get("/{finding_id}")
 def get_finding(finding_id: str):
-    for scan in pipeline.list_scans():
-        for finding in pipeline.loads(scan.findings_json):
-            if finding.get("id") == finding_id:
-                # Re-attach the scan-level analysis so the detail response keeps
-                # its documented shape without storing it N times.
-                finding["ai_analysis"] = pipeline.loads(scan.analysis_json) if scan.analysis_json else None
-                return finding
-    raise HTTPException(status_code=404, detail="Finding not found")
+    finding = finding_service.get_finding(finding_id)
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
+    return finding
+
+
+@router.patch("/{finding_id}")
+def update_finding(finding_id: str, update: FindingUpdate):
+    """Acknowledge or resolve a finding.
+
+    Triage is keyed on a content fingerprint rather than the finding id, so
+    the decision survives re-analysing the same scan.
+    """
+    updated = finding_service.update_finding(finding_id, update.status.value, update.note)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
+    return updated

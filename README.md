@@ -8,10 +8,11 @@ Sentinel-AI is an AI-powered cybersecurity analysis and vulnerability intelligen
 - Asset & service normalization and deduplication
 - Rule-based correlation engine (extensible `Rule` interface)
 - Deterministic risk engine (0–100 with confidence/exposure factors)
+- Finding triage: acknowledge and resolve findings with notes, surviving re-analysis
 - Vulnerability intelligence: local CVE dataset + NVD API with graceful offline fallback
 - AI security analyst: OpenAI/Ollama with validated structured output and deterministic local fallback
 - Lightweight RAG over bundled security knowledge documents
-- Next.js dashboard: overview, assets, findings, finding detail, scan upload, reports
+- Next.js dashboard: overview, assets, asset detail (services, findings, scan history), findings, finding detail, scan upload, reports
 - Docker Compose deployment with healthchecks and CORS configured from the environment
 
 ## Architecture

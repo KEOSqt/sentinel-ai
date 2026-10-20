@@ -37,6 +37,23 @@ class ReportRecord(Base):
     content: Mapped[str] = mapped_column(Text, default="")
 
 
+class FindingTriageRecord(Base):
+    """Analyst decisions about a finding, keyed by a content fingerprint.
+
+    Not keyed by Finding.id: those are fresh UUIDs on every re-analysis, so an
+    id-keyed row would be orphaned — silently discarding every status the
+    moment someone re-runs the analysis. See app.services.triage.finding_key.
+    """
+
+    __tablename__ = "finding_triage"
+
+    finding_key: Mapped[str] = mapped_column(String, primary_key=True)
+    scan_id: Mapped[str] = mapped_column(String, index=True)
+    status: Mapped[str] = mapped_column(String, default="open")
+    note: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+
+
 engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 

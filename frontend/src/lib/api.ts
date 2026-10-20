@@ -104,6 +104,14 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResul
   });
 }
 
+export async function apiPatch<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
+  return request<T>(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
 export type Asset = {
   id: string;
   ip: string;
@@ -113,10 +121,31 @@ export type Asset = {
   services: { port: number; protocol: string; service: string; product?: string | null; version?: string | null; state: string }[];
 };
 
+/** A scan that observed an asset — the provenance behind the merged view. */
+export type AssetScan = {
+  id: string;
+  source: string;
+  filename?: string | null;
+  status: string;
+  created_at?: string | null;
+  asset_count: number;
+  finding_count: number;
+};
+
+export type AssetDetail = {
+  asset: Asset;
+  first_seen?: string | null;
+  last_seen?: string | null;
+  scans: AssetScan[];
+  findings: Finding[];
+  counts: Record<FindingStatus, number>;
+};
+
 export type FindingStatus = "open" | "acknowledged" | "resolved";
 
 export type Finding = {
   id: string;
+  scan_id?: string;
   title: string;
   description: string;
   severity: "INFO" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -129,6 +158,8 @@ export type Finding = {
   remediation: string;
   references: string[];
   status: FindingStatus;
+  triage_note?: string;
+  triaged_at?: string | null;
   vulnerabilities?: { id: string; title: string; severity: string; cvss?: number | null }[];
   ai_analysis?: {
     summary: string;

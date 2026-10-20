@@ -17,7 +17,8 @@ Backend/
 frontend/
   src/app/          # Next.js app router pages (overview, assets, findings, scan, reports)
                     # + error.tsx / global-error.tsx / loading.tsx / not-found.tsx boundaries
-  src/components/   # interactive client components (ApiErrorState, ReportsPanel)
+  src/components/   # interactive client components (ApiErrorState, ReportsPanel,
+                  # FindingTriage)
   src/lib/          # api client + server-safe shared UI primitives
 ```
 
@@ -43,6 +44,10 @@ frontend/
 Create a class extending `Rule` in `app/services/correlation.py` implementing
 `evaluate(asset, vulns_by_service) -> list[Finding]`, then append an instance to `RULES`.
 Cover it with a unit test in `tests/`.
+
+Note that `app/services/triage.py` derives a finding's identity from its title,
+asset ip and service. Changing how a rule sets those fields changes its
+fingerprint, which would orphan any triage an analyst has recorded against it.
 
 ## Adding Knowledge for RAG
 
