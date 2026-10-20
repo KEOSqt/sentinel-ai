@@ -95,7 +95,15 @@ export default async function FindingsPage({
                   <td className="py-2">
                     <Link className="text-sky-400 hover:underline" href={`/findings/${f.id}`}>{f.title}</Link>
                   </td>
-                  <td className="py-2 font-mono text-slate-300">{f.asset?.ip ?? "—"}</td>
+                  <td className="py-2 font-mono text-slate-300">
+                    {f.asset?.ip ? (
+                      <Link className="text-sky-400 hover:underline" href={`/assets/${encodeURIComponent(f.asset.ip)}`}>
+                        {f.asset.ip}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="py-2">{f.risk_score}</td>
                   <td className="py-2">{f.confidence}</td>
                   <td className="py-2"><StatusBadge status={f.status} /></td>

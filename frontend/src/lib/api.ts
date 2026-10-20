@@ -121,6 +121,26 @@ export type Asset = {
   services: { port: number; protocol: string; service: string; product?: string | null; version?: string | null; state: string }[];
 };
 
+/** A scan that observed an asset — the provenance behind the merged view. */
+export type AssetScan = {
+  id: string;
+  source: string;
+  filename?: string | null;
+  status: string;
+  created_at?: string | null;
+  asset_count: number;
+  finding_count: number;
+};
+
+export type AssetDetail = {
+  asset: Asset;
+  first_seen?: string | null;
+  last_seen?: string | null;
+  scans: AssetScan[];
+  findings: Finding[];
+  counts: Record<FindingStatus, number>;
+};
+
 export type FindingStatus = "open" | "acknowledged" | "resolved";
 
 export type Finding = {

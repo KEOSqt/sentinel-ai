@@ -43,7 +43,18 @@ export default async function FindingDetailPage({
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div><p className="text-xs text-slate-500">Risk Score</p><p className="text-xl text-white">{finding.risk_score}</p></div>
         <div><p className="text-xs text-slate-500">Confidence</p><p className="text-xl text-white">{finding.confidence}</p></div>
-        <div><p className="text-xs text-slate-500">Asset</p><p className="text-xl font-mono text-white">{finding.asset?.ip ?? "—"}</p></div>
+        <div>
+          <p className="text-xs text-slate-500">Asset</p>
+          <p className="text-xl font-mono">
+            {finding.asset?.ip ? (
+              <Link className="text-white hover:text-sky-400 hover:underline" href={`/assets/${encodeURIComponent(finding.asset.ip)}`}>
+                {finding.asset.ip}
+              </Link>
+            ) : (
+              <span className="text-white">—</span>
+            )}
+          </p>
+        </div>
         <div>
           <p className="text-xs text-slate-500">Status</p>
           <p className="mt-2 text-xl">

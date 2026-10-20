@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type Asset } from "@/lib/api";
 import { EmptyState } from "@/lib/ui";
@@ -43,7 +44,11 @@ export default async function AssetsPage() {
             <tbody>
               {assets.map((a) => (
                 <tr key={a.id} className="border-t border-slate-800 align-top">
-                  <td className="py-2 font-mono text-slate-200">{a.ip}</td>
+                  <td className="py-2 font-mono text-slate-200">
+                    <Link className="text-sky-400 hover:underline" href={`/assets/${encodeURIComponent(a.ip)}`}>
+                      {a.ip}
+                    </Link>
+                  </td>
                   <td className="py-2">{a.hostname ?? "—"}</td>
                   <td className="py-2">{a.os ?? "—"}</td>
                   <td className="py-2">

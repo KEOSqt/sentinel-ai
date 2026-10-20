@@ -82,6 +82,27 @@ List recent scans: `id`, `source`, `filename`, `status`, `created_at`, `asset_co
 ### GET /api/v1/assets
 Deduplicated assets aggregated across scans: `ip`, `hostname`, `os`, `services[]`, `exposure`, `metadata`.
 
+### GET /api/v1/assets/{ip}
+One host, assembled from everything that is known about it. This is the
+merged asset plus the provenance and findings that the list endpoint cannot
+carry:
+
+| Field | Meaning |
+| --- | --- |
+| `asset` | The merged asset (same shape as the list, plus everything later scans added) |
+| `scans[]` | Every scan that observed this host, newest first: `id`, `source`, `filename`, `status`, `created_at`, `asset_count`, `finding_count` |
+| `first_seen` / `last_seen` | `created_at` of the oldest and newest of those scans |
+| `findings[]` | Every finding raised against this host in any scan, with triage (`status`, `triage_note`, `scan_id`) — same shape as `GET /api/v1/findings` |
+| `counts` | How many of those findings are `open`, `acknowledged` and `resolved` |
+
+Errors: `404` no scan has ever reported this address.
+
+Merging is additive: a service or hostname seen once is never dropped because
+a later scan stopped reporting it, and a duplicate port/protocol pair is not
+added twice. Triage is scoped per scan, so the same title raised by two scans
+appears twice and can be triaged independently — `scans[]` and each finding's
+`scan_id` say which is which.
+
 ## Findings
 
 ### GET /api/v1/findings

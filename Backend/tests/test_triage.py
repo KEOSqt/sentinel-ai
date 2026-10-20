@@ -29,9 +29,11 @@ def _analyze(client, scan_id: str):
 
 
 def test_findings_default_to_open(client):
-    _scan_id = _scan(client)
-    _analyze(client, _scan_id)
-    findings = client.get("/api/v1/findings").json()
+    scan_id = _scan(client)
+    _analyze(client, scan_id)
+    # Scoped to this scan: other tests in the suite triage their own findings,
+    # and this assertion is about what a freshly analysed scan starts as.
+    findings = client.get("/api/v1/findings", params={"scan_id": scan_id}).json()
     assert findings
     assert all(f["status"] == "open" for f in findings)
 
