@@ -134,6 +134,16 @@ def get_report(report_id: str) -> ReportRecord | None:
         return session.get(ReportRecord, report_id)
 
 
+def delete_report(report_id: str) -> bool:
+    with SessionLocal() as session:
+        record = session.get(ReportRecord, report_id)
+        if record is None:
+            return False
+        session.delete(record)
+        session.commit()
+        return True
+
+
 def list_reports(scan_id: str | None = None) -> list[ReportRecord]:
     """Reports newest first, optionally filtered to a single scan.
 
