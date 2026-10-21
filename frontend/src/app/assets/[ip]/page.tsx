@@ -1,32 +1,58 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ApiErrorState } from "@/components/api-error-state";
-import { apiGet, type AssetDetail } from "@/lib/api";
-import { Card, EmptyState, SeverityBadge, StatusBadge } from "@/lib/ui";
+"use client";
 
-export const instant = false;
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { notFound, useParams } from "next/navigation";
+import { ApiErrorState } from "@/components/api-error-state";
+import { apiGet, type AssetDetail, type ApiError } from "@/lib/api";
+import { Card, EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 function when(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "—";
 }
 
-export default async function AssetDetailPage({
-  params,
-}: {
-  params: Promise<{ ip: string }>;
-}) {
-  const { ip } = await params;
-  const result = await apiGet<AssetDetail>(`/api/v1/assets/${encodeURIComponent(ip)}`);
+export default function AssetDetailPage() {
+  const { ip } = useParams();
+  const ipStr = Array.isArray(ip) ? ip[0] : ip;
+  const [data, setData] = useState<AssetDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [notFoundRoute, setNotFoundRoute] = useState(false);
 
-  // A real 404 from the backend means the host genuinely is unknown to us.
-  // Anything else is an infrastructure problem and must not be reported as
-  // "not found".
-  if (!result.ok) {
-    if (result.error.kind === "http" && result.error.status === 404) notFound();
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await apiGet<AssetDetail>(`/api/v1/assets/${encodeURIComponent(ipStr!)}`);
+      if (cancelled) return;
+      if (!result.ok) {
+        if (result.error.kind === "http" && result.error.status === 404) {
+          setNotFoundRoute(true);
+        } else {
+          setError(result.error);
+        }
+      } else {
+        setData(result.data);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ipStr]);
+
+  if (notFoundRoute) {
+    notFound();
+  }
+
+  if (loading) {
+    return <PageSkeleton />;
+  }
+
+  if (error !== null) {
     return (
       <div className="space-y-6">
-        <h1 className="font-mono text-2xl font-semibold text-white">{ip}</h1>
-        <ApiErrorState errors={[result.error]} />
+        <h1 className="font-mono text-2xl font-semibold text-white">{ipStr}</h1>
+        <ApiErrorState errors={[error]} />
         <Link className="inline-block text-sm text-sky-400 hover:underline" href="/assets">
           Back to assets
         </Link>
@@ -34,7 +60,7 @@ export default async function AssetDetailPage({
     );
   }
 
-  const { asset, findings, scans, counts, first_seen, last_seen } = result.data;
+  const { asset, findings, scans, counts, first_seen, last_seen } = data!;
 
   return (
     <div className="space-y-6">

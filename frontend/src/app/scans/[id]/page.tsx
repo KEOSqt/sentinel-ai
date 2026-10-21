@@ -1,11 +1,12 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
 import { ScanAnalysisActions } from "@/components/scan-analysis-actions";
-import { apiGet, type AIAnalysis, type ScanDetail } from "@/lib/api";
-import { Card, EmptyState, SeverityBadge, StatusBadge } from "@/lib/ui";
-
-export const instant = false;
+import { apiGet, type AIAnalysis, type ApiError, type ScanDetail } from "@/lib/api";
+import { Card, EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 function when(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "—";
@@ -36,22 +37,48 @@ function AnalysisLists({ analysis }: { analysis: AIAnalysis }) {
   );
 }
 
-export default async function ScanDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const result = await apiGet<ScanDetail>(`/api/v1/scans/${encodeURIComponent(id)}`);
+export default function ScanDetailPage() {
+  const { id } = useParams();
+  const idStr = Array.isArray(id) ? id[0] : id;
+  const [data, setData] = useState<ScanDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [notFoundRoute, setNotFoundRoute] = useState(false);
 
-  // A real 404 from the backend means this scan id is unknown to us. Anything
-  // else is an infrastructure problem and must not be reported as "not found".
-  if (!result.ok) {
-    if (result.error.kind === "http" && result.error.status === 404) notFound();
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await apiGet<ScanDetail>(`/api/v1/scans/${encodeURIComponent(idStr!)}`);
+      if (cancelled) return;
+      if (!result.ok) {
+        if (result.error.kind === "http" && result.error.status === 404) {
+          setNotFoundRoute(true);
+        } else {
+          setError(result.error);
+        }
+      } else {
+        setData(result.data);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [idStr]);
+
+  if (notFoundRoute) {
+    notFound();
+  }
+
+  if (loading) {
+    return <PageSkeleton />;
+  }
+
+  if (error !== null) {
     return (
       <div className="space-y-6">
-        <h1 className="font-mono text-2xl font-semibold text-white">{id.slice(0, 8)}</h1>
-        <ApiErrorState errors={[result.error]} />
+        <h1 className="font-mono text-2xl font-semibold text-white">{idStr!.slice(0, 8)}</h1>
+        <ApiErrorState errors={[error]} />
         <Link className="inline-block text-sm text-sky-400 hover:underline" href="/">
           Back to overview
         </Link>
@@ -59,7 +86,7 @@ export default async function ScanDetailPage({
     );
   }
 
-  const { scan, analysis, assets, findings, counts } = result.data;
+  const { scan, analysis, assets, findings, counts } = data!;
 
   return (
     <div className="space-y-6">

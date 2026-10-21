@@ -1,23 +1,45 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApiErrorState } from "@/components/api-error-state";
-import { apiGet, type Asset } from "@/lib/api";
-import { EmptyState } from "@/lib/ui";
+import { apiGet, type Asset, type ApiError } from "@/lib/api";
+import { EmptyState, PageSkeleton } from "@/lib/ui";
 
-export const instant = false;
+export default function AssetsPage() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
 
-export default async function AssetsPage() {
-  const result = await apiGet<Asset[]>("/api/v1/assets");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await apiGet<Asset[]>("/api/v1/assets");
+      if (cancelled) return;
+      if (!result.ok) {
+        setError(result.error);
+      } else {
+        setAssets(result.data);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (!result.ok) {
+  if (loading) {
+    return <PageSkeleton />;
+  }
+
+  if (error !== null) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-white">Assets</h1>
-        <ApiErrorState errors={[result.error]} />
+        <ApiErrorState errors={[error]} />
       </div>
     );
   }
-
-  const assets = result.data;
 
   return (
     <div className="space-y-6">
