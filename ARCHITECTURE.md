@@ -42,7 +42,7 @@ flowchart TD
 - **AI analyst** (`app/services/ai/analyst.py`): builds a structured JSON payload, retrieves RAG context, calls OpenAI → Ollama → deterministic local fallback, and validates output against the `AIAnalysis` pydantic schema. Invalid JSON, timeouts, or provider errors fall back gracefully.
 - **RAG** (`app/services/ai/rag.py`): chunking + lightweight token-overlap retrieval over bundled docs in `app/services/ai/knowledge/`. Chosen over a vector DB to avoid unnecessary infrastructure.
 - **Persistence** (`app/db`): SQLite via SQLAlchemy 2.0 storing scan evidence, findings, and AI analysis as JSON; reports as markdown. The AI analysis is stored **once per scan** (`analysis_json`) and attached to a finding only when serving `GET /api/v1/findings/{id}`, rather than being duplicated into every finding record. Analyst triage lives in its own `finding_triage` table, keyed by a content fingerprint because finding UUIDs are regenerated on every analysis run.
-- **Pipeline** (`app/services/pipeline.py`): orchestrates ingest → analyze → store → report.
+- **Pipeline** (`app/services/pipeline.py`): orchestrates ingest → analyze → store → report. Also owns the shared list-view shape of a scan (`scan_summary`), so the scans, assets and scan-detail endpoints cannot drift apart.
 - **Findings assembly** (`app/services/findings.py`): walks every scan's stored findings and overlays the analyst triage rows. Findings live inside scan rows rather than in their own table, so "all findings" and "this host's findings" are the same walk; keeping it in one place stops the findings and assets routes from each re-implementing the overlay.
 
 ## Design Decisions
@@ -54,3 +54,6 @@ flowchart TD
 - Service metadata is stored once on the scan instead of being copied onto each finding.
 - Analyst decisions are keyed on derived, stable identities rather than generated ids, so re-running analysis never discards them.
 - A host's detail is derived on read — merged evidence, the scans that observed it, and its findings — rather than maintained as stored per-asset state, so there is nothing to keep in sync when a scan is ingested.
+- A scan is inspectable on its own, from `ingested` through analysis: its page shows the evidence it ingested even before the analysis runs, so a scan that produced nothing is distinguishable from one that was never ingested.
+- A scans list page (`/scans`) shows every scan with status, asset and finding counts, and links to each scan's detail page.
+- Dashboard pages fetch data from the browser (`"use client"` + `useEffect`) instead of server-side fetching. A page shows a skeleton while loading and an error banner when the backend is unreachable, so no dashboard page ever hangs indefinitely waiting for data that will never arrive.

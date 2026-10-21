@@ -69,6 +69,19 @@ def list_scans() -> list[ScanRecord]:
         return list(session.execute(select(ScanRecord).order_by(ScanRecord.created_at.desc())).scalars())
 
 
+def scan_summary(record: ScanRecord) -> dict:
+    """The list-view shape of one scan, shared by every endpoint that returns it."""
+    return {
+        "id": record.id,
+        "source": record.source,
+        "filename": record.filename,
+        "status": record.status,
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+        "asset_count": record.asset_count,
+        "finding_count": record.finding_count,
+    }
+
+
 def findings_for_scan(record: ScanRecord) -> list[Finding]:
     return [Finding.model_validate(f) for f in loads(record.findings_json)]
 

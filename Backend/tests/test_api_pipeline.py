@@ -109,6 +109,55 @@ def test_reports_are_listable(client):
     assert all(r["scan_id"] == scan_id for r in filtered)
 
 
+def test_scan_detail_404(client):
+    assert client.get("/api/v1/scans/nonexistent").status_code == 404
+
+
+def test_scan_detail_before_analysis(client):
+    """An uploaded-but-unanalysed scan still shows its evidence, with no findings.
+
+    This is the state every scan passes through on the way in; the detail page
+    has to render it rather than treat "no analysis yet" as an error.
+    """
+    with open(FIXTURE, "rb") as fh:
+        resp = client.post("/api/v1/evidence/nmap", files={"file": ("scan.xml", fh, "text/xml")})
+    scan_id = resp.json()["scan_id"]
+
+    body = client.get(f"/api/v1/scans/{scan_id}").json()
+    assert body["scan"]["id"] == scan_id
+    assert body["scan"]["status"] == "ingested"
+    assert len(body["assets"]) == body["scan"]["asset_count"]
+    assert body["findings"] == []
+    assert body["analysis"] is None
+    assert body["counts"] == {"open": 0, "acknowledged": 0, "resolved": 0}
+
+
+def test_scan_detail_after_analysis(client):
+    scan_id, analysis = _upload_and_analyze(client)
+    body = client.get(f"/api/v1/scans/{scan_id}").json()
+
+    assert body["scan"]["status"] == "completed"
+    assert body["scan"]["finding_count"] == analysis["finding_count"]
+    assert body["analysis"]["summary"]
+    # Every finding belongs to this scan and starts out open.
+    assert all(f["scan_id"] == scan_id for f in body["findings"])
+    assert all(f["status"] == "open" for f in body["findings"])
+    assert sum(body["counts"].values()) == len(body["findings"])
+    assert len(body["assets"]) == body["scan"]["asset_count"]
+
+
+def test_scan_detail_scopes_findings_to_its_own_scan(client):
+    """Two scans of the same file must not bleed findings into each other."""
+    first_id, first = _upload_and_analyze(client)
+    second_id, second = _upload_and_analyze(client)
+    assert first_id != second_id
+    assert first["finding_count"] == second["finding_count"]
+
+    body = client.get(f"/api/v1/scans/{first_id}").json()
+    assert len(body["findings"]) == first["finding_count"]
+    assert all(f["scan_id"] == first_id for f in body["findings"])
+
+
 def test_upload_rejects_bad_xml(client):
     resp = client.post("/api/v1/evidence/nmap", files={"file": ("bad.xml", b"<notnmap/>", "text/xml")})
     assert resp.status_code == 422

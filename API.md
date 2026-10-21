@@ -77,6 +77,25 @@ Errors: `404` no scans / scan not found.
 ### GET /api/v1/scans
 List recent scans: `id`, `source`, `filename`, `status`, `created_at`, `asset_count`, `finding_count`.
 
+### GET /api/v1/scans/{scan_id}
+One scan on its own: what it ingested, what it raised, and what the analyst made
+of it. The list endpoint only carries counts; this is the endpoint behind the
+scan detail page and the target of the "re-run analysis" action.
+
+| Field | Meaning |
+| --- | --- |
+| `scan` | Scan metadata — same shape as one entry in the list endpoint |
+| `analysis` | The scan-level AI analysis (`summary`, `risk_assessment`, `priority_findings`, `attack_paths`, `recommendations`, `missing_information`), or `null` when the scan has not been analysed |
+| `assets[]` | The hosts **this scan** observed, with their services — provenance, not the cross-scan merge that `GET /api/v1/assets` returns |
+| `findings[]` | The findings produced by this scan, with triage (`status`, `triage_note`, `scan_id`) |
+| `counts` | How many of those findings are `open`, `acknowledged` and `resolved` |
+
+A scan that has been uploaded but not analysed is a normal, successful state:
+`status` is `ingested`, `assets[]` is populated, and `findings[]` is empty with
+`analysis` `null`. Run `POST /api/v1/analyze` with the id to fill those in.
+
+Errors: `404` unknown scan id.
+
 ## Assets
 
 ### GET /api/v1/assets

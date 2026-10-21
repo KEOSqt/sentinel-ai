@@ -53,6 +53,18 @@ def list_findings(status: str | None = None, scan_id: str | None = None) -> list
     return findings
 
 
+def count_by_status(findings: list[dict[str, Any]]) -> dict[str, int]:
+    """How many of these findings are open, acknowledged and resolved.
+
+    Always reports all three keys so an empty list and a fully-triaged list
+    are both shaped the same for the caller.
+    """
+    counts = {triage.DEFAULT_STATUS: 0, "acknowledged": 0, "resolved": 0}
+    for finding in findings:
+        counts[finding["status"]] = counts.get(finding["status"], 0) + 1
+    return counts
+
+
 def get_finding(finding_id: str) -> dict[str, Any] | None:
     """One finding by id, with the scan-level analysis attached on read.
 
