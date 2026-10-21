@@ -55,10 +55,17 @@ export default function ReportsPanel({ initialReports, scans }: ReportsPanelProp
     const res = await apiGet<Report>(`/api/v1/reports/${reportId}`);
     if (!res.ok) {
       setError(res.error);
-      setSelectedReport(null);
+      // Report was deleted (or never existed) — remove it from the list too
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+      if (selectedId === reportId) {
+        setSelectedReport(null);
+        const remaining = reports.filter((r) => r.id !== reportId);
+        setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+      }
       return;
     }
     setSelectedReport(res.data);
+    setSelectedId(reportId);
   }
 
   async function deleteReport(reportId: string) {
