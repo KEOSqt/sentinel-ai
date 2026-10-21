@@ -55,4 +55,5 @@ flowchart TD
 - Analyst decisions are keyed on derived, stable identities rather than generated ids, so re-running analysis never discards them.
 - A host's detail is derived on read — merged evidence, the scans that observed it, and its findings — rather than maintained as stored per-asset state, so there is nothing to keep in sync when a scan is ingested.
 - A scan is inspectable on its own, from `ingested` through analysis: its page shows the evidence it ingested even before the analysis runs, so a scan that produced nothing is distinguishable from one that was never ingested.
+- A scans list page (`/scans`) shows every scan with status, asset and finding counts, and links to each scan's detail page.
 - Dashboard pages fetch data from the browser (`"use client"` + `useEffect`) instead of server-side fetching. A page shows a skeleton while loading and an error banner when the backend is unreachable, so no dashboard page ever hangs indefinitely waiting for data that will never arrive.
