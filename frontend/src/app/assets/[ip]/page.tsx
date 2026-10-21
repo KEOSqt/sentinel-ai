@@ -160,7 +160,13 @@ export default async function AssetDetailPage({
                 <tr key={s.id} className="border-t border-slate-800">
                   <td className="py-2 text-slate-300">{when(s.created_at)}</td>
                   <td className="py-2">{s.source}</td>
-                  <td className="py-2 text-slate-300">{s.filename ?? "—"}</td>
+                  <td className="py-2 text-slate-300">
+                    <Link className="text-sky-400 hover:underline" href={`/scans/${s.id}`}>
+                      {s.filename ?? s.id.slice(0, 8)}
+                    </Link>
+                    {/* Filenames repeat across uploads, so the id is always shown. */}
+                    <span className="ml-2 font-mono text-xs text-slate-500">{s.id.slice(0, 8)}</span>
+                  </td>
                   <td className="py-2">{s.status}</td>
                   <td className="py-2">{s.asset_count}</td>
                   <td className="py-2">{s.finding_count}</td>
