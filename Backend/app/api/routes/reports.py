@@ -46,3 +46,10 @@ def get_report(report_id: str):
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return _serialize(report)
+
+
+@router.delete("/{report_id}")
+def delete_report_route(report_id: str):
+    if not pipeline.delete_report(report_id):
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"detail": "Report deleted"}

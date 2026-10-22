@@ -112,6 +112,12 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<ApiResu
   });
 }
 
+export async function apiDelete<T>(path: string): Promise<ApiResult<T>> {
+  return request<T>(path, {
+    method: "DELETE",
+  });
+}
+
 export type Asset = {
   id: string;
   ip: string;
