@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="font-sans min-h-full flex flex-col bg-slate-950 text-slate-200">
         <nav className="border-b border-slate-800 bg-slate-900/60">
-          <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="text-lg font-semibold tracking-tight text-white">
               Sentinel-AI
             </Link>

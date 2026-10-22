@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type ApiError, type Scan } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { EmptyState, PageSkeleton } from "@/lib/ui";
 
 export default function ScansPage() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    retry();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +34,7 @@ export default function ScansPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   if (loading) {
     return <PageSkeleton />;
@@ -36,7 +44,7 @@ export default function ScansPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-white">Scans</h1>
-        <ApiErrorState errors={[error]} />
+        <ApiErrorState errors={[error]} onRetry={handleRetry} />
       </div>
     );
   }

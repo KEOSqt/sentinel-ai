@@ -11,12 +11,22 @@ import type { ApiError } from "@/lib/api";
 export function ApiErrorState({
   title = "Cannot reach the Sentinel-AI backend",
   errors,
+  onRetry,
 }: {
   title?: string;
   errors: ApiError[];
+  onRetry?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  function retry() {
+    if (onRetry) {
+      onRetry();
+      return;
+    }
+    startTransition(() => router.refresh());
+  }
 
   return (
     <div role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
@@ -32,12 +42,13 @@ export function ApiErrorState({
           </ul>
           <p className="mt-2 text-xs text-red-200/60">
             Start the API with <code className="font-mono">docker compose up</code> or{" "}
-            <code className="font-mono">uvicorn app.main:app</code>, then retry.
+            <code className="font-mono">uvicorn app.main:app</code> from <code className="font-mono">Backend</code>,
+            then retry.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => startTransition(() => router.refresh())}
+          onClick={retry}
           disabled={pending}
           className="shrink-0 rounded-md bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-500/30 disabled:opacity-50"
         >

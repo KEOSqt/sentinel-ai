@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type ApiError, type Asset, type Finding, type Scan } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { Card, EmptyState, PageSkeleton, SeverityBadge } from "@/lib/ui";
 import Link from "next/link";
 
@@ -14,6 +15,13 @@ export default function OverviewPage() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
   const [failures, setFailures] = useState<ApiError[]>([]);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setFailures([]);
+    retry();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +47,7 @@ export default function OverviewPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   if (loading) {
     return <PageSkeleton />;
@@ -49,7 +57,7 @@ export default function OverviewPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-white">Security Overview</h1>
-        <ApiErrorState errors={failures} />
+        <ApiErrorState errors={failures} onRetry={handleRetry} />
       </div>
     );
   }
@@ -67,7 +75,7 @@ export default function OverviewPage() {
       <h1 className="text-2xl font-semibold text-white">Security Overview</h1>
 
       {partialFailures.length > 0 && (
-        <ApiErrorState title="Some data could not be loaded" errors={partialFailures} />
+        <ApiErrorState title="Some data could not be loaded" errors={partialFailures} onRetry={handleRetry} />
       )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

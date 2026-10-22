@@ -112,6 +112,10 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<ApiResu
   });
 }
 
+export async function apiUpload<T>(path: string, body: FormData): Promise<ApiResult<T>> {
+  return request<T>(path, { method: "POST", body });
+}
+
 export async function apiDelete<T>(path: string): Promise<ApiResult<T>> {
   return request<T>(path, {
     method: "DELETE",

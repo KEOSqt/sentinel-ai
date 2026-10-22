@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { apiPost, apiUpload } from "@/lib/api";
 
 type SourceKind = "file" | "paste";
 
@@ -43,26 +42,25 @@ export default function ScanPage() {
         form.append("file", blob, name);
       }
 
-      const upload = await fetch(`${API_URL}/api/v1/evidence/nmap`, {
-        method: "POST",
-        body: form,
-      });
+      const upload = await apiUpload<{ scan_id: string; asset_count: number }>("/api/v1/evidence/nmap", form);
       if (!upload.ok) {
-        const detail = await upload.json().catch(() => ({}));
-        throw new Error(detail.detail ?? `Upload failed (${upload.status})`);
+        setError(upload.error.message);
+        setStatus("");
+        return;
       }
-      const uploadBody = await upload.json();
+      const uploadBody = upload.data;
       setScanId(uploadBody.scan_id);
       setStatus(`Parsed ${uploadBody.asset_count} asset(s). Running analysis…`);
 
-      const analysis = await fetch(`${API_URL}/api/v1/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scan_id: uploadBody.scan_id }),
+      const analysis = await apiPost<{ finding_count: number }>("/api/v1/analyze", {
+        scan_id: uploadBody.scan_id,
       });
-      if (!analysis.ok) throw new Error(`Analysis failed (${analysis.status})`);
-      const analysisBody = await analysis.json();
-      setStatus(`Analysis complete: ${analysisBody.finding_count} finding(s).`);
+      if (!analysis.ok) {
+        setError(analysis.error.message);
+        setStatus("");
+        return;
+      }
+      setStatus(`Analysis complete: ${analysis.data.finding_count} finding(s).`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setStatus("");
