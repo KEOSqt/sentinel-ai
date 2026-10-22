@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type AssetDetail, type ApiError } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { Card, EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 function when(value?: string | null) {
@@ -18,6 +19,13 @@ export default function AssetDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [notFoundRoute, setNotFoundRoute] = useState(false);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    retry();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +46,7 @@ export default function AssetDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [ipStr]);
+  }, [attempt, ipStr]);
 
   if (notFoundRoute) {
     notFound();
@@ -52,7 +60,7 @@ export default function AssetDetailPage() {
     return (
       <div className="space-y-6">
         <h1 className="font-mono text-2xl font-semibold text-white">{ipStr}</h1>
-        <ApiErrorState errors={[error]} />
+        <ApiErrorState errors={[error]} onRetry={handleRetry} />
         <Link className="inline-block text-sm text-sky-400 hover:underline" href="/assets">
           Back to assets
         </Link>

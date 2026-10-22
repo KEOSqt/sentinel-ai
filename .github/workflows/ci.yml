@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 # Superseded runs on the same ref are cancelled to save runner minutes.
 concurrency:
@@ -63,6 +61,9 @@ jobs:
 
       - name: Lint (eslint)
         run: npm run lint
+
+      - name: Test (vitest)
+        run: npm test
 
       - name: Build / typecheck
         run: npm run build

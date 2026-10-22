@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPost, apiDelete, type ApiError, type Report, type ReportSummary, type Scan } from "@/lib/api";
+import { Markdown } from "@/lib/markdown";
 
 interface ReportsPanelProps {
   initialReports: ReportSummary[];
@@ -59,12 +60,13 @@ export default function ReportsPanel({ initialReports, scans }: ReportsPanelProp
     const res = await apiGet<Report>(`/api/v1/reports/${reportId}`);
     if (!res.ok) {
       setError(res.error);
-      // Report was deleted (or never existed) — remove it from the list too
-      setReports((prev) => prev.filter((r) => r.id !== reportId));
-      if (selectedId === reportId) {
-        setSelectedReport(null);
-        const remaining = reports.filter((r) => r.id !== reportId);
-        setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+      if (res.error.kind === "http" && res.error.status === 404) {
+        setReports((prev) => prev.filter((r) => r.id !== reportId));
+        if (selectedId === reportId) {
+          setSelectedReport(null);
+          const remaining = reports.filter((r) => r.id !== reportId);
+          setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+        }
       }
       return;
     }
@@ -233,97 +235,10 @@ export default function ReportsPanel({ initialReports, scans }: ReportsPanelProp
             </div>
           </div>
           <div className="prose prose-slate max-w-none text-sm text-slate-300">
-            {renderMarkdown(selectedReport.content)}
+            <Markdown content={selectedReport.content} />
           </div>
         </section>
       )}
     </div>
   );
-}
-
-function renderMarkdown(markdown: string): React.ReactNode {
-  const lines = markdown.split("\n");
-  const blocks: React.ReactNode[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (line.startsWith("```")) {
-      const codeLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].startsWith("```")) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      i++;
-      blocks.push(
-        <pre key={blocks.length} className="rounded-md border border-slate-700 bg-slate-950 p-3 font-mono text-xs overflow-x-auto">
-          <code>{codeLines.join("\n")}</code>
-        </pre>
-      );
-      continue;
-    }
-
-    if (/^[-*_]{3,}$/.test(line.trim())) {
-      blocks.push(<hr key={blocks.length} className="my-4 border-slate-800" />);
-      i++;
-      continue;
-    }
-
-    const headerMatch = line.match(/^(#{1,6})\s(.+)$/);
-    if (headerMatch) {
-      const level = headerMatch[1].length;
-      const text = headerMatch[2];
-      const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
-      blocks.push(
-        <Tag key={blocks.length} className="my-3 font-semibold text-white">
-          {text}
-        </Tag>
-      );
-      i++;
-      continue;
-    }
-
-    if (/^[-*+]\s/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^[-*+]\s/.test(lines[i])) {
-        items.push(lines[i].replace(/^[-*+]\s/, ""));
-        i++;
-      }
-      blocks.push(
-        <ul key={blocks.length} className="list-disc space-y-1 pl-5 text-slate-300">
-          {items.map((item, idx) => (
-            <li key={idx}>{item}</li>
-          ))}
-        </ul>
-      );
-      continue;
-    }
-
-    if (line.trim() === "") {
-      i++;
-      continue;
-    }
-
-    const paraLines: string[] = [];
-    while (
-      i < lines.length &&
-      lines[i].trim() !== "" &&
-      !lines[i].startsWith("```") &&
-      !/^[-*+]\s/.test(lines[i]) &&
-      !/^#{1,6}\s/.test(lines[i]) &&
-      !/^[-*_]{3,}$/.test(lines[i].trim())
-    ) {
-      paraLines.push(lines[i]);
-      i++;
-    }
-    blocks.push(
-      <p key={blocks.length} className="my-2 text-slate-300">
-        {paraLines.join(" ")}
-      </p>
-    );
-  }
-
-  return <>{blocks}</>;
 }

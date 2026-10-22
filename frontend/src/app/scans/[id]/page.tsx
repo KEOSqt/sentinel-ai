@@ -6,6 +6,7 @@ import { notFound, useParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
 import { ScanAnalysisActions } from "@/components/scan-analysis-actions";
 import { apiGet, type AIAnalysis, type ApiError, type ScanDetail } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { Card, EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 function when(value?: string | null) {
@@ -44,6 +45,13 @@ export default function ScanDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [notFoundRoute, setNotFoundRoute] = useState(false);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    retry();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +72,7 @@ export default function ScanDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [idStr]);
+  }, [attempt, idStr]);
 
   if (notFoundRoute) {
     notFound();
@@ -78,7 +86,7 @@ export default function ScanDetailPage() {
     return (
       <div className="space-y-6">
         <h1 className="font-mono text-2xl font-semibold text-white">{idStr!.slice(0, 8)}</h1>
-        <ApiErrorState errors={[error]} />
+        <ApiErrorState errors={[error]} onRetry={handleRetry} />
         <Link className="inline-block text-sm text-sky-400 hover:underline" href="/">
           Back to overview
         </Link>

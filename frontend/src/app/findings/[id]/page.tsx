@@ -6,6 +6,7 @@ import { notFound, useParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
 import { FindingTriage } from "@/components/finding-triage";
 import { apiGet, type ApiError, type Finding } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 export default function FindingDetailPage() {
@@ -15,6 +16,13 @@ export default function FindingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [notFoundRoute, setNotFoundRoute] = useState(false);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    retry();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +43,7 @@ export default function FindingDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [idStr]);
+  }, [attempt, idStr]);
 
   if (notFoundRoute) {
     notFound();
@@ -49,7 +57,7 @@ export default function FindingDetailPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-white">Finding</h1>
-        <ApiErrorState errors={[error]} />
+        <ApiErrorState errors={[error]} onRetry={handleRetry} />
         <Link className="inline-block text-sm text-sky-400 hover:underline" href="/findings">
           Back to findings
         </Link>

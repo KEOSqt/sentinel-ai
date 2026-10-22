@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
 import { apiGet, type Finding, type FindingStatus, type ApiError } from "@/lib/api";
+import { useRetry } from "@/lib/use-retry";
 import { EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
 const FILTERS: { value: FindingStatus | null; label: string }[] = [
@@ -20,6 +21,18 @@ export default function FindingsPage() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const { attempt, retry } = useRetry();
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    retry();
+  }
+
+  function handleFilterClick() {
+    setLoading(true);
+    setError(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +52,7 @@ export default function FindingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [pathname, searchParams]);
+  }, [attempt, pathname, searchParams]);
 
   if (loading) {
     return <PageSkeleton />;
@@ -59,6 +72,7 @@ export default function FindingsPage() {
                 <Link
                   key={f.label}
                   href={f.value ? `/findings?status=${f.value}` : "/findings"}
+                  onClick={handleFilterClick}
                   aria-current={selected ? "page" : undefined}
                   className={`rounded-md border px-3 py-1 text-xs font-medium ${
                     selected
@@ -72,7 +86,7 @@ export default function FindingsPage() {
             })}
           </nav>
         </div>
-        <ApiErrorState errors={[error]} />
+        <ApiErrorState errors={[error]} onRetry={handleRetry} />
       </div>
     );
   }
@@ -90,6 +104,7 @@ export default function FindingsPage() {
             <Link
               key={f.label}
               href={f.value ? `/findings?status=${f.value}` : "/findings"}
+              onClick={handleFilterClick}
               aria-current={selected ? "page" : undefined}
               className={`rounded-md border px-3 py-1 text-xs font-medium ${
                 selected

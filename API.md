@@ -18,10 +18,10 @@ Also served (as an alias) at `GET /health`.
 }
 ```
 
-`llm_provider` reports the provider the analyst will actually try first, which
-is `openai` when `SENTINEL_OPENAI_API_KEY` is set and `ollama` otherwise.
-(`SENTINEL_ANTHROPIC_API_KEY` is accepted by the settings layer but is currently
-unused by the analyst.)
+`llm_provider` reports the provider the analyst will actually try first, or
+`none` when no provider is configured. In `auto` mode the order is OpenRouter
+free models, then OpenAI, then Ollama, skipping providers without credentials;
+set `SENTINEL_LLM_PROVIDER` to force one first. `none` disables LLM calls.
 
 ## CORS
 
@@ -51,7 +51,9 @@ Response 200:
   "assets": [ { "ip": "...", "hostname": "...", "os": "...", "services": [] } ]
 }
 ```
-Errors: `413` file too large, `422` invalid/unsafe XML.
+The body is read in bounded chunks, so an oversized upload is rejected with
+`413` before the whole file is buffered. Errors: `413` file too large, `422`
+invalid/unsafe XML.
 
 ## Analyze
 
@@ -175,6 +177,11 @@ Metadata only — the markdown body is omitted because it dominates the payload.
 { "scan_id": "..." }
 ```
 Creates a markdown security report; returns `{ id, scan_id, created_at, content }`.
+Errors: `404` unknown scan, `409` scan has not completed analysis yet.
 
 ### GET /api/v1/reports/{id}
 Returns the stored report.
+
+### DELETE /api/v1/reports/{id}
+Deletes a report and returns `{"detail": "Report deleted"}`.
+Errors: `404` report not found.
