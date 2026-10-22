@@ -59,7 +59,22 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 def init_db() -> None:
-    Base.metadata.create_all(engine)
+    """Run Alembic migrations to bring the database schema up to date.
+
+    Replaces the old ``Base.metadata.create_all()`` approach, which silently
+    fails to apply schema changes to existing databases. Alembic tracks the
+    schema version in an ``alembic_version`` table and applies only the
+    migrations that haven't run yet.
+    """
+    from alembic import command
+    from alembic.config import Config
+    import os
+
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    alembic_ini = os.path.join(backend_dir, "alembic.ini")
+    alembic_cfg = Config(alembic_ini)
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(alembic_cfg, "head")
 
 
 def get_session() -> Session:
