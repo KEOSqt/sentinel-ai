@@ -90,6 +90,13 @@ def create_report(scan_id: str) -> ReportRecord | None:
     record = get_scan(scan_id)
     if record is None:
         return None
+
+    # If a report already exists for this scan, return it instead of creating
+    # a duplicate. A scan has one report; re-generating shows the existing one.
+    existing = list_reports(scan_id)
+    if existing:
+        return existing[0]
+
     findings = findings_for_scan(record)
     analysis = loads(record.analysis_json) if record.analysis_json else {}
 

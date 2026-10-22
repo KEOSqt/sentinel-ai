@@ -40,7 +40,11 @@ export default function ReportsPanel({ initialReports, scans }: ReportsPanelProp
       setSelectedId(body.id);
       setSelectedReport(body);
       setStatus("Report generated.");
-      setReports((prev) => [{ id: body.id, scan_id: body.scan_id, created_at: body.created_at }, ...prev]);
+      // Don't prepend a duplicate if this report is already in the list
+      // (backend returns the existing one when a report already exists).
+      if (!reports.some((r) => r.id === body.id)) {
+        setReports((prev) => [{ id: body.id, scan_id: body.scan_id, created_at: body.created_at }, ...prev]);
+      }
     } catch (err) {
       setError({ kind: "network", message: err instanceof Error ? err.message : "Unknown error" });
     } finally {

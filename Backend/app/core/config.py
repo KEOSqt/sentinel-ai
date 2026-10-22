@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # NoDecode stops pydantic-settings from JSON-decoding this itself, so a
     # plain comma-separated value does not crash startup with a bare
     # SettingsError. Both forms are accepted; see _parse_cors_origins.
-    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3111"]
 
     @field_validator("cors_origins", mode="before")
     @classmethod
