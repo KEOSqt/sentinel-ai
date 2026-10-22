@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Tests, pytest.ini and pyproject.toml are deliberately not copied: they are
 # not needed at runtime and only inflate the image.
 COPY app ./app
+COPY alembic.ini ./
+COPY alembic ./alembic
 
 ENV SENTINEL_DATABASE_URL=sqlite:////data/sentinel.db \
     PYTHONUNBUFFERED=1

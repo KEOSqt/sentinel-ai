@@ -7,23 +7,24 @@ from app.services import pipeline
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["evidence"])
 
-CHUNK_SIZE = 1024 * 1024
-MULTIPART_OVERHEAD_ALLOWANCE = 1024 * 1024
-
 
 @router.post("/nmap")
 async def upload_nmap(request: Request, file: UploadFile = File(...)):
+    # Pre-check Content-Length before buffering the body, so an oversized
+    # upload is rejected with 413 without spending memory on it.
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
-            if int(content_length) > settings.max_upload_bytes + MULTIPART_OVERHEAD_ALLOWANCE:
-                raise HTTPException(status_code=413, detail="File too large")
+            cl = int(content_length)
         except ValueError:
-            pass
+            cl = 0
+        if cl > settings.max_upload_bytes:
+            raise HTTPException(status_code=413, detail="File too large")
 
+    # Read in chunks and enforce size limit even if Content-Length is absent
     chunks: list[bytes] = []
     size = 0
-    while chunk := await file.read(CHUNK_SIZE):
+    while chunk := await file.read(1024 * 1024):
         size += len(chunk)
         if size > settings.max_upload_bytes:
             raise HTTPException(status_code=413, detail="File too large")

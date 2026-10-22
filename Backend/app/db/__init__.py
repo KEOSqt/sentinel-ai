@@ -20,7 +20,7 @@ class ScanRecord(Base):
     source: Mapped[str] = mapped_column(String, default="nmap")
     filename: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="completed")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     evidence_json: Mapped[str] = mapped_column(Text, default="{}")
     findings_json: Mapped[str] = mapped_column(Text, default="[]")
     analysis_json: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -33,7 +33,7 @@ class ReportRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     scan_id: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     content: Mapped[str] = mapped_column(Text, default="")
 
 
@@ -51,7 +51,7 @@ class FindingTriageRecord(Base):
     scan_id: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String, default="open")
     note: Mapped[str] = mapped_column(Text, default="")
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 _connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
@@ -60,7 +60,22 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 def init_db() -> None:
-    Base.metadata.create_all(engine)
+    """Run Alembic migrations to bring the database schema up to date.
+
+    Replaces the old ``Base.metadata.create_all()`` approach, which silently
+    fails to apply schema changes to existing databases. Alembic tracks the
+    schema version in an ``alembic_version`` table and applies only the
+    migrations that haven't run yet.
+    """
+    from alembic import command
+    from alembic.config import Config
+    import os
+
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    alembic_ini = os.path.join(backend_dir, "alembic.ini")
+    alembic_cfg = Config(alembic_ini)
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(alembic_cfg, "head")
 
 
 def get_session() -> Session:
