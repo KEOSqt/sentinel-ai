@@ -20,7 +20,7 @@ class ScanRecord(Base):
     source: Mapped[str] = mapped_column(String, default="nmap")
     filename: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="completed")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     evidence_json: Mapped[str] = mapped_column(Text, default="{}")
     findings_json: Mapped[str] = mapped_column(Text, default="[]")
     analysis_json: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -33,7 +33,7 @@ class ReportRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     scan_id: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     content: Mapped[str] = mapped_column(Text, default="")
 
 
@@ -51,7 +51,7 @@ class FindingTriageRecord(Base):
     scan_id: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String, default="open")
     note: Mapped[str] = mapped_column(Text, default="")
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})

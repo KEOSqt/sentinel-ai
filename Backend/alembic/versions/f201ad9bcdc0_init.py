@@ -26,14 +26,14 @@ def upgrade() -> None:
     sa.Column('scan_id', sa.String(), nullable=False),
     sa.Column('status', sa.String(), nullable=False),
     sa.Column('note', sa.Text(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('finding_key')
     )
     op.create_index(op.f('ix_finding_triage_scan_id'), 'finding_triage', ['scan_id'], unique=False)
     op.create_table('reports',
     sa.Column('id', sa.String(), nullable=False),
     sa.Column('scan_id', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -42,7 +42,7 @@ def upgrade() -> None:
     sa.Column('source', sa.String(), nullable=False),
     sa.Column('filename', sa.String(), nullable=True),
     sa.Column('status', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('evidence_json', sa.Text(), nullable=False),
     sa.Column('findings_json', sa.Text(), nullable=False),
     sa.Column('analysis_json', sa.Text(), nullable=True),
