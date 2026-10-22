@@ -1,23 +1,40 @@
 import json
 import re
 import urllib.request
+from collections.abc import Callable
 
 from app.core.config import settings
 from app.models import AIAnalysis, Asset, Finding
 from app.services.ai.rag import KnowledgeBase
 
+PROVIDERS = ("openrouter", "openai", "ollama")
+
+
+def _configured(provider: str) -> bool:
+    if provider == "openrouter":
+        return bool(settings.openrouter_api_key)
+    if provider == "openai":
+        return bool(settings.openai_api_key)
+    if provider == "ollama":
+        return bool(settings.ollama_base_url)
+    return False
+
+
+def provider_order() -> list[str]:
+    """Providers to try, in order, for the current settings and keys."""
+    if settings.llm_provider == "none":
+        return []
+    if settings.llm_provider == "auto":
+        return [provider for provider in PROVIDERS if _configured(provider)]
+
+    forced = [settings.llm_provider] if _configured(settings.llm_provider) else []
+    return forced + [provider for provider in PROVIDERS if provider not in forced and _configured(provider)]
+
 
 def active_provider() -> str:
-    """The provider ``_call_llm`` will actually try first.
-
-    Note: ``SENTINEL_ANTHROPIC_API_KEY`` is accepted by the settings layer and
-    documented in the README, but ``_call_llm`` never calls Anthropic. This
-    deliberately reports only what the code really does rather than what an
-    operator might expect from a configured key.
-    """
-    if settings.openai_api_key:
-        return "openai"
-    return "ollama"
+    """The provider ``_call_llm`` will try first, or ``none`` when disabled."""
+    order = provider_order()
+    return order[0] if order else "none"
 
 
 def build_payload(assets: list[Asset], findings: list[Finding]) -> dict:
@@ -61,38 +78,100 @@ def _extract_json(text: str) -> dict | None:
         return None
 
 
-def _call_llm(prompt: str) -> dict | None:
-    """Try OpenAI-compatible, then Ollama. Returns parsed JSON dict or None."""
-    if settings.openai_api_key:
-        try:
-            req = urllib.request.Request(
-                "https://api.openai.com/v1/chat/completions",
-                data=json.dumps({
-                    "model": "gpt-4o-mini",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.2,
-                }).encode(),
-                headers={"Authorization": f"Bearer {settings.openai_api_key}", "Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.load(resp)
-            return _extract_json(data["choices"][0]["message"]["content"])
-        except Exception:
-            pass
+def _call_openai_compatible(
+    url: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    timeout: float,
+    extra_headers: dict[str, str] | None = None,
+) -> dict | None:
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if extra_headers:
+        headers.update(extra_headers)
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+            }
+        ).encode(),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        data = json.load(response)
+    content = data["choices"][0]["message"].get("content")
+    if not isinstance(content, str):
+        return None
+    return _extract_json(content)
 
+
+def _call_openrouter(prompt: str) -> dict | None:
+    if not settings.openrouter_api_key:
+        return None
     try:
-        req = urllib.request.Request(
+        return _call_openai_compatible(
+            "https://openrouter.ai/api/v1/chat/completions",
+            settings.openrouter_api_key,
+            settings.openrouter_model,
+            prompt,
+            timeout=60,
+            extra_headers={
+                "HTTP-Referer": "https://github.com/KEOSqt/sentinel-ai",
+                "X-Title": "Sentinel-AI",
+            },
+        )
+    except Exception:
+        return None
+
+
+def _call_openai(prompt: str) -> dict | None:
+    if not settings.openai_api_key:
+        return None
+    try:
+        return _call_openai_compatible(
+            "https://api.openai.com/v1/chat/completions",
+            settings.openai_api_key,
+            settings.openai_model,
+            prompt,
+            timeout=60,
+        )
+    except Exception:
+        return None
+
+
+def _call_ollama(prompt: str) -> dict | None:
+    try:
+        request = urllib.request.Request(
             f"{settings.ollama_base_url}/api/generate",
-            data=json.dumps({"model": "llama3.1", "prompt": prompt, "stream": False}).encode(),
+            data=json.dumps({"model": settings.ollama_model, "prompt": prompt, "stream": False}).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.load(resp)
+        with urllib.request.urlopen(request, timeout=120) as response:
+            data = json.load(response)
         return _extract_json(data.get("response", ""))
     except Exception:
         return None
+
+
+_CALLERS: dict[str, Callable[[str], dict | None]] = {
+    "openrouter": _call_openrouter,
+    "openai": _call_openai,
+    "ollama": _call_ollama,
+}
+
+
+def _call_llm(prompt: str) -> dict | None:
+    """Try each configured provider in order. Returns parsed JSON or None."""
+    for provider in provider_order():
+        parsed = _CALLERS[provider](prompt)
+        if parsed is not None:
+            return parsed
+    return None
 
 
 def _fallback_analysis(assets: list[Asset], findings: list[Finding]) -> AIAnalysis:

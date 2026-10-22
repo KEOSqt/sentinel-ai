@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_nmap.xml"
@@ -161,6 +162,35 @@ def test_scan_detail_scopes_findings_to_its_own_scan(client):
 def test_upload_rejects_bad_xml(client):
     resp = client.post("/api/v1/evidence/nmap", files={"file": ("bad.xml", b"<notnmap/>", "text/xml")})
     assert resp.status_code == 422
+
+
+def test_upload_rejects_oversized_payload(client, monkeypatch):
+    monkeypatch.setattr(settings, "max_upload_bytes", 1024)
+    payload = b"<nmaprun>" + (b"x" * 4096) + b"</nmaprun>"
+
+    resp = client.post("/api/v1/evidence/nmap", files={"file": ("big.xml", payload, "text/xml")})
+
+    assert resp.status_code == 413
+
+
+def test_report_requires_completed_analysis(client):
+    with open(FIXTURE, "rb") as fh:
+        resp = client.post("/api/v1/evidence/nmap", files={"file": ("scan.xml", fh, "text/xml")})
+    scan_id = resp.json()["scan_id"]
+
+    resp = client.post("/api/v1/reports", json={"scan_id": scan_id})
+
+    assert resp.status_code == 409
+
+
+def test_timestamps_include_utc_offset(client):
+    scan_id, _ = _upload_and_analyze(client)
+    body = client.get(f"/api/v1/scans/{scan_id}").json()
+
+    assert body["scan"]["created_at"].endswith("+00:00")
+
+    report = client.post("/api/v1/reports", json={"scan_id": scan_id}).json()
+    assert report["created_at"].endswith("+00:00")
 
 
 def test_findings_404(client):

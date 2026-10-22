@@ -1,22 +1,36 @@
 import json
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="SENTINEL_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(REPO_ROOT / ".env", BACKEND_ROOT / ".env"),
+        env_prefix="SENTINEL_",
+        extra="ignore",
+    )
 
     app_name: str = "SentinelAI"
     version: str = "0.1.0"
     database_url: str = "sqlite:///./sentinel.db"
     max_upload_bytes: int = 10 * 1024 * 1024
+    llm_provider: str = "auto"
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
     openai_api_key: str | None = None
-    anthropic_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
     ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1"
     nvd_api_key: str | None = None
     nvd_enabled: bool = True
+    nvd_cache_ttl_seconds: int = 900
+    nvd_min_interval_seconds: float = 6.0
     # NoDecode stops pydantic-settings from JSON-decoding this itself, so a
     # plain comma-separated value does not crash startup with a bare
     # SettingsError. Both forms are accepted; see _parse_cors_origins.
@@ -66,6 +80,17 @@ class Settings(BaseSettings):
 
         # Convenience form: comma-separated.
         return [item.strip() for item in raw.split(",") if item.strip()]
+
+    @field_validator("llm_provider", mode="before")
+    @classmethod
+    def _parse_llm_provider(cls, value: Any) -> str:
+        if not isinstance(value, str):
+            raise TypeError("SENTINEL_LLM_PROVIDER must be a string.")
+        normalized = value.strip().lower()
+        allowed = ("auto", "openrouter", "openai", "ollama", "none")
+        if normalized not in allowed:
+            raise ValueError(f"SENTINEL_LLM_PROVIDER must be one of {', '.join(allowed)}.")
+        return normalized
 
     @property
     def cors_allow_credentials(self) -> bool:

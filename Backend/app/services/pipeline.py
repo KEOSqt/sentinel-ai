@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 
+from app.core.time import to_iso_utc
 from app.db import ReportRecord, ScanRecord, SessionLocal, dumps, loads
 from app.models import Finding, SecurityEvidence
 from app.parsers.nmap import NmapParser
@@ -56,6 +57,8 @@ def run_analysis(scan_id: str) -> ScanRecord | None:
     record.status = "completed"
     with SessionLocal() as session:
         merged = session.get(ScanRecord, scan_id)
+        if merged is None:
+            return None
         merged.findings_json = record.findings_json
         merged.analysis_json = record.analysis_json
         merged.finding_count = record.finding_count
@@ -76,7 +79,7 @@ def scan_summary(record: ScanRecord) -> dict:
         "source": record.source,
         "filename": record.filename,
         "status": record.status,
-        "created_at": record.created_at.isoformat() if record.created_at else None,
+        "created_at": to_iso_utc(record.created_at),
         "asset_count": record.asset_count,
         "finding_count": record.finding_count,
     }

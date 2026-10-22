@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.core.time import to_iso_utc
 from app.services import pipeline
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
@@ -14,7 +15,7 @@ def _serialize(report) -> dict:
     return {
         "id": report.id,
         "scan_id": report.scan_id,
-        "created_at": report.created_at.isoformat(),
+        "created_at": to_iso_utc(report.created_at),
         "content": report.content,
     }
 
@@ -26,7 +27,7 @@ def list_reports(scan_id: str | None = None):
         {
             "id": r.id,
             "scan_id": r.scan_id,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "created_at": to_iso_utc(r.created_at),
         }
         for r in pipeline.list_reports(scan_id)
     ]
@@ -34,6 +35,11 @@ def list_reports(scan_id: str | None = None):
 
 @router.post("")
 def create_report(request: ReportRequest):
+    scan = pipeline.get_scan(request.scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    if scan.status != "completed":
+        raise HTTPException(status_code=409, detail="Scan has not been analysed yet")
     report = pipeline.create_report(request.scan_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Scan not found")

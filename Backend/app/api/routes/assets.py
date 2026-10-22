@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app.core.time import to_iso_utc
 from app.db import ScanRecord
 from app.models import SecurityEvidence
 from app.services import findings as finding_service
@@ -77,8 +78,8 @@ def get_asset(ip: str):
 
     return {
         "asset": asset,
-        "first_seen": ordered[0].created_at.isoformat() if ordered else None,
-        "last_seen": ordered[-1].created_at.isoformat() if ordered else None,
+        "first_seen": to_iso_utc(ordered[0].created_at) if ordered else None,
+        "last_seen": to_iso_utc(ordered[-1].created_at) if ordered else None,
         "scans": [pipeline.scan_summary(s) for s in reversed(ordered)],  # newest first, like every other list
         "findings": asset_findings,
         "counts": counts,

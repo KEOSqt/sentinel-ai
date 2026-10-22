@@ -12,6 +12,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from app.core.time import to_iso_utc
 from app.db import FindingTriageRecord, SessionLocal
 from app.models import FindingStatus
 
@@ -46,7 +47,7 @@ def triage_for(scan_id: str, finding: dict[str, Any]) -> dict[str, Any]:
         return {
             "status": record.status,
             "note": record.note or "",
-            "updated_at": record.updated_at.isoformat() if record.updated_at else None,
+            "updated_at": to_iso_utc(record.updated_at),
         }
 
 
@@ -63,7 +64,7 @@ def triage_map(scan_id: str, findings: list[dict[str, Any]]) -> dict[str, dict[s
             row.finding_key: {
                 "status": row.status,
                 "note": row.note or "",
-                "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+                "updated_at": to_iso_utc(row.updated_at),
             }
             for row in rows
         }
@@ -83,4 +84,4 @@ def set_triage(scan_id: str, finding: dict[str, Any], status: str, note: str = "
             record.note = note
         record.updated_at = now
         session.commit()
-    return {"status": status, "note": note, "updated_at": now.isoformat()}
+    return {"status": status, "note": note, "updated_at": to_iso_utc(now)}
