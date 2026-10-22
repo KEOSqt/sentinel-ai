@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
 from app.core.config import settings
 from app.models import SecurityEvidence
@@ -9,7 +9,18 @@ router = APIRouter(prefix="/api/v1/evidence", tags=["evidence"])
 
 
 @router.post("/nmap")
-async def upload_nmap(file: UploadFile = File(...)):
+async def upload_nmap(request: Request, file: UploadFile = File(...)):
+    # Pre-check Content-Length before buffering the body, so an oversized
+    # upload is rejected with 413 without spending memory on it.
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            cl = int(content_length)
+        except ValueError:
+            cl = 0
+        if cl > settings.max_upload_bytes:
+            raise HTTPException(status_code=413, detail="File too large")
+
     payload = await file.read()
     if len(payload) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail="File too large")
