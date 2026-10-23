@@ -1,11 +1,15 @@
 import json
+import logging
 import re
 import urllib.request
 from collections.abc import Callable
 
 from app.core.config import settings
+from app.core.logging import get_request_id
 from app.models import AIAnalysis, Asset, Finding
 from app.services.ai.rag import KnowledgeBase
+
+logger = logging.getLogger(__name__)
 
 PROVIDERS = ("openrouter", "openai", "ollama")
 
@@ -101,17 +105,40 @@ def _call_openai_compatible(
         headers=headers,
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        data = json.load(response)
-    content = data["choices"][0]["message"].get("content")
-    if not isinstance(content, str):
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.load(response)
+        content = data["choices"][0]["message"].get("content")
+        if not isinstance(content, str):
+            logger.error(
+                "llm_call_failed",
+                extra={
+                    "provider": model,
+                    "reason": "empty_or_invalid_content",
+                    "request_id": get_request_id(),
+                },
+            )
+            return None
+        return _extract_json(content)
+    except Exception:
+        logger.error(
+            "llm_call_failed",
+            extra={
+                "provider": model,
+                "reason": "network_or_parse_error",
+                "request_id": get_request_id(),
+            },
+        )
         return None
-    return _extract_json(content)
 
 
 def _call_openrouter(prompt: str) -> dict | None:
     if not settings.openrouter_api_key:
         return None
+    logger.debug(
+        "llm_call_start",
+        extra={"provider": "openrouter", "request_id": get_request_id()},
+    )
     try:
         return _call_openai_compatible(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -125,12 +152,20 @@ def _call_openrouter(prompt: str) -> dict | None:
             },
         )
     except Exception:
+        logger.error(
+            "llm_call_failed",
+            extra={"provider": "openrouter", "request_id": get_request_id()},
+        )
         return None
 
 
 def _call_openai(prompt: str) -> dict | None:
     if not settings.openai_api_key:
         return None
+    logger.debug(
+        "llm_call_start",
+        extra={"provider": "openai", "request_id": get_request_id()},
+    )
     try:
         return _call_openai_compatible(
             "https://api.openai.com/v1/chat/completions",
@@ -140,10 +175,18 @@ def _call_openai(prompt: str) -> dict | None:
             timeout=60,
         )
     except Exception:
+        logger.error(
+            "llm_call_failed",
+            extra={"provider": "openai", "request_id": get_request_id()},
+        )
         return None
 
 
 def _call_ollama(prompt: str) -> dict | None:
+    logger.debug(
+        "llm_call_start",
+        extra={"provider": "ollama", "request_id": get_request_id()},
+    )
     try:
         request = urllib.request.Request(
             f"{settings.ollama_base_url}/api/generate",
@@ -155,6 +198,10 @@ def _call_ollama(prompt: str) -> dict | None:
             data = json.load(response)
         return _extract_json(data.get("response", ""))
     except Exception:
+        logger.error(
+            "llm_call_failed",
+            extra={"provider": "ollama", "request_id": get_request_id()},
+        )
         return None
 
 
@@ -168,9 +215,21 @@ _CALLERS: dict[str, Callable[[str], dict | None]] = {
 def _call_llm(prompt: str) -> dict | None:
     """Try each configured provider in order. Returns parsed JSON or None."""
     for provider in provider_order():
+        logger.debug(
+            "llm_trying_provider",
+            extra={"provider": provider, "request_id": get_request_id()},
+        )
         parsed = _CALLERS[provider](prompt)
         if parsed is not None:
+            logger.info(
+                "llm_call_success",
+                extra={"provider": provider, "request_id": get_request_id()},
+            )
             return parsed
+    logger.warning(
+        "llm_all_providers_failed",
+        extra={"request_id": get_request_id()},
+    )
     return None
 
 
@@ -211,10 +270,22 @@ def analyze_security_posture(assets: list[Asset], findings: list[Finding]) -> AI
     query = " ".join(f.title for f in findings[:5]) or "security posture"
     context = kb.retrieve(query)
 
+    logger.info(
+        "analyze_security_posture_start",
+        extra={
+            "asset_count": len(assets),
+            "finding_count": len(findings),
+            "request_id": get_request_id(),
+        },
+    )
+
     parsed = _call_llm(_prompt(payload, context))
     if parsed is not None:
         try:
             return AIAnalysis.model_validate(parsed)
         except Exception:
-            pass
+            logger.error(
+                "llm_invalid_response",
+                extra={"request_id": get_request_id()},
+            )
     return _fallback_analysis(assets, findings)

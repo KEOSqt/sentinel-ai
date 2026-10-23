@@ -1,17 +1,20 @@
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import analysis, assets, evidence, findings, reports
 from app.core.config import settings
+from app.core.logging import configure_logging, clear_request_id, set_request_id
 from app.db import check_database, init_db
 from app.services.ai.analyst import active_provider
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    configure_logging()
     init_db()
     yield
 
@@ -26,11 +29,21 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    # Must stay False when origins is a wildcard; see Settings.cors_allow_credentials.
     allow_credentials=settings.cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    set_request_id(request_id)
+    try:
+        response = await call_next(request)
+    finally:
+        clear_request_id()
+    return response
 
 
 app.include_router(evidence.router)
