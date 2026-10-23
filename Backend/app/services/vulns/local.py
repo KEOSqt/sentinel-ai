@@ -87,7 +87,7 @@ def local_lookup(product: str | None, version: str | None) -> list[Vulnerability
     out = []
     for entry in LOCAL_CVES:
         try:
-            if entry["match"](product, _extract_version_number(version)):
+            if entry["match"](product, extract_version_number(version)):
                 out.append(
                     Vulnerability(
                         id=entry["id"],
@@ -104,7 +104,7 @@ def local_lookup(product: str | None, version: str | None) -> list[Vulnerability
     return out
 
 
-def _extract_version_number(version_string: str | None) -> str | None:
+def extract_version_number(version_string: str | None) -> str | None:
     if not version_string:
         return None
     parts = version_string.split()

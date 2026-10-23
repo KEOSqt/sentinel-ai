@@ -8,7 +8,7 @@ from app.models import (
     Severity,
     Vulnerability,
 )
-from app.services.vulns.local import _extract_version_number, version_at_most
+from app.services.vulns.local import extract_version_number, version_at_most
 
 
 class Rule:
@@ -21,7 +21,7 @@ class Rule:
 class VulnerableServiceRule(Rule):
     name = "vulnerable_service"
 
-    def evaluate(self, asset, vulns_by_service):
+    def evaluate(self, asset: Asset, vulns_by_service: dict[tuple[int, str], list[Vulnerability]]) -> list[Finding]:
         findings = []
         for service in asset.services:
             if service.state != "open":
@@ -48,12 +48,13 @@ class VulnerableServiceRule(Rule):
 class ExposedRdpRule(Rule):
     name = "exposed_rdp"
 
-    def evaluate(self, asset, vulns_by_service):
+    def evaluate(self, asset: Asset, vulns_by_service: dict[tuple[int, str], list[Vulnerability]]) -> list[Finding]:
+        findings = []
         for service in asset.services:
             if service.state != "open":
                 continue
             if service.port == 3389 or "terminal" in (service.product or "").lower() or service.service in ("ms-wbt-server", "rdp"):
-                return [
+                findings.append(
                     Finding(
                         title="Remote Desktop (RDP) exposed",
                         description="RDP is exposed and is a frequent target for brute-force and exploitation.",
@@ -66,14 +67,14 @@ class ExposedRdpRule(Rule):
                         remediation="Restrict RDP to a VPN or allowlisted IPs, enable NLA, and keep the host patched.",
                         references=["https://nvd.nist.gov/vuln/detail/CVE-2019-0708"],
                     )
-                ]
-        return []
+                )
+        return findings
 
 
 class OutdatedServiceRule(Rule):
     name = "outdated_service"
 
-    def evaluate(self, asset, vulns_by_service):
+    def evaluate(self, asset: Asset, vulns_by_service: dict[tuple[int, str], list[Vulnerability]]) -> list[Finding]:
         findings = []
         for service in asset.services:
             if service.state != "open" or not service.version:
@@ -82,7 +83,7 @@ class OutdatedServiceRule(Rule):
                 # CVE rule already covers this exact match
                 continue
             product = (service.product or service.service or "").lower()
-            ver = _extract_version_number(service.version)
+            ver = extract_version_number(service.version)
             if not ver:
                 continue
             if product.startswith("openssh") and version_at_most(ver, "7.4"):

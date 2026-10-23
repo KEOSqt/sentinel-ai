@@ -124,8 +124,6 @@ def get_finding(finding_id: str) -> dict[str, Any] | None:
     Returns None when no scan contains that id, which is the only way for a
     finding id to be wrong: there is no findings table to point at.
     """
-    from app.db import SessionLocal
-
     with SessionLocal() as session:
         row = session.get(FindingRecord, finding_id)
     if row is None:
@@ -148,8 +146,6 @@ def update_finding(finding_id: str, status: str, note: str = "") -> dict[str, An
     Returns None when the id is unknown, so the route can turn that into a
     404 rather than silently creating a triage row nobody will ever read.
     """
-    from app.db import SessionLocal
-
     with SessionLocal() as session:
         row = session.get(FindingRecord, finding_id)
         if row is None:
