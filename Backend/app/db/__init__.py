@@ -2,7 +2,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Integer, String, Text, create_engine, text
+from sqlalchemy import DateTime, Float, Integer, String, Text, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
@@ -52,6 +52,30 @@ class FindingTriageRecord(Base):
     status: Mapped[str] = mapped_column(String, default="open")
     note: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class FindingRecord(Base):
+    """Findings stored in their own table so they can be queried by id
+    without walking every scan's JSON blob.
+
+    Stored redundantly with findings_json on ScanRecord for backward
+    compatibility during the transition; new code reads from this table.
+    """
+
+    __tablename__ = "findings"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    scan_id: Mapped[str] = mapped_column(String, index=True)
+    title: Mapped[str] = mapped_column(String)
+    severity: Mapped[str] = mapped_column(String)
+    risk_score: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[str] = mapped_column(String)
+    asset_ip: Mapped[str | None] = mapped_column(String, nullable=True)
+    affected_service_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    affected_service_protocol: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="open")
+    triage_note: Mapped[str] = mapped_column(Text, default="")
+    triaged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 _connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
