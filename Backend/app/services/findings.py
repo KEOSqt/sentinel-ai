@@ -44,6 +44,13 @@ def _enrich_from_row(row: Any) -> dict[str, Any]:
             if row.affected_service_port
             else None
         ),
+        # Fields not stored in findings table but expected by frontend:
+        "description": "",
+        "rationale": "",
+        "remediation": "",
+        "references": [],
+        "evidence": [],
+        "vulnerabilities": [],
     }
 
 
