@@ -50,7 +50,7 @@ afterEach(() => {
 
 describe("FindingsPage filters", () => {
   it.each([
-    ["All", "/findings?status=null"],
+    ["All", "/findings"],
     ["Open", "/findings?status=open"],
     ["Acknowledged", "/findings?status=acknowledged"],
     ["Resolved", "/findings?status=resolved"],
