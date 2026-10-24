@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ApiErrorState } from "@/components/api-error-state";
-import { apiGet, type Finding, type FindingStatus, type ApiError } from "@/lib/api";
+import {
+  apiGet,
+  type Finding,
+  type FindingStatus,
+  type ApiError,
+} from "@/lib/api";
 import { useRetry } from "@/lib/use-retry";
 import { EmptyState, PageSkeleton, SeverityBadge, StatusBadge } from "@/lib/ui";
 
@@ -29,7 +34,8 @@ export default function FindingsPage() {
     retry();
   }
 
-  function handleFilterClick() {
+  function handleFilterClick(nextStatus: FindingStatus | null) {
+    if (searchParams.get("status") === nextStatus) return;
     setLoading(true);
     setError(null);
   }
@@ -38,7 +44,9 @@ export default function FindingsPage() {
     let cancelled = false;
     (async () => {
       const status = searchParams.get("status");
-      const active = (["open", "acknowledged", "resolved"] as const).find((s) => s === status);
+      const active = (["open", "acknowledged", "resolved"] as const).find(
+        (s) => s === status,
+      );
       const query = active ? `?status=${active}` : "";
       const result = await apiGet<Finding[]>(`/api/v1/findings${query}`);
       if (cancelled) return;
@@ -60,7 +68,9 @@ export default function FindingsPage() {
 
   if (error !== null) {
     const status = searchParams.get("status");
-    const active = (["open", "acknowledged", "resolved"] as const).find((s) => s === status);
+    const active = (["open", "acknowledged", "resolved"] as const).find(
+      (s) => s === status,
+    );
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,7 +82,7 @@ export default function FindingsPage() {
                 <Link
                   key={f.label}
                   href={f.value ? `/findings?status=${f.value}` : "/findings"}
-                  onClick={handleFilterClick}
+                  onClick={() => handleFilterClick(f.value)}
                   aria-current={selected ? "page" : undefined}
                   className={`rounded-md border px-3 py-1 text-xs font-medium ${
                     selected
@@ -92,7 +102,9 @@ export default function FindingsPage() {
   }
 
   const status = searchParams.get("status");
-  const active = (["open", "acknowledged", "resolved"] as const).find((s) => s === status);
+  const active = (["open", "acknowledged", "resolved"] as const).find(
+    (s) => s === status,
+  );
 
   const header = (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -104,7 +116,7 @@ export default function FindingsPage() {
             <Link
               key={f.label}
               href={f.value ? `/findings?status=${f.value}` : "/findings"}
-              onClick={handleFilterClick}
+              onClick={() => handleFilterClick(f.value)}
               aria-current={selected ? "page" : undefined}
               className={`rounded-md border px-3 py-1 text-xs font-medium ${
                 selected
@@ -141,24 +153,46 @@ export default function FindingsPage() {
             </caption>
             <thead>
               <tr className="text-left text-slate-500">
-                <th scope="col" className="pb-2">Severity</th>
-                <th scope="col" className="pb-2">Title</th>
-                <th scope="col" className="pb-2">Asset</th>
-                <th scope="col" className="pb-2">Risk</th>
-                <th scope="col" className="pb-2">Confidence</th>
-                <th scope="col" className="pb-2">Status</th>
+                <th scope="col" className="pb-2">
+                  Severity
+                </th>
+                <th scope="col" className="pb-2">
+                  Title
+                </th>
+                <th scope="col" className="pb-2">
+                  Asset
+                </th>
+                <th scope="col" className="pb-2">
+                  Risk
+                </th>
+                <th scope="col" className="pb-2">
+                  Confidence
+                </th>
+                <th scope="col" className="pb-2">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>
               {findings.map((f) => (
                 <tr key={f.id} className="border-t border-slate-800">
-                  <td className="py-2"><SeverityBadge severity={f.severity} /></td>
                   <td className="py-2">
-                    <Link className="text-sky-400 hover:underline" href={`/findings/${f.id}`}>{f.title}</Link>
+                    <SeverityBadge severity={f.severity} />
+                  </td>
+                  <td className="py-2">
+                    <Link
+                      className="text-sky-400 hover:underline"
+                      href={`/findings/${f.id}`}
+                    >
+                      {f.title}
+                    </Link>
                   </td>
                   <td className="py-2 font-mono text-slate-300">
                     {f.asset?.ip ? (
-                      <Link className="text-sky-400 hover:underline" href={`/assets/${encodeURIComponent(f.asset.ip)}`}>
+                      <Link
+                        className="text-sky-400 hover:underline"
+                        href={`/assets/${encodeURIComponent(f.asset.ip)}`}
+                      >
                         {f.asset.ip}
                       </Link>
                     ) : (
@@ -167,7 +201,9 @@ export default function FindingsPage() {
                   </td>
                   <td className="py-2">{f.risk_score}</td>
                   <td className="py-2">{f.confidence}</td>
-                  <td className="py-2"><StatusBadge status={f.status} /></td>
+                  <td className="py-2">
+                    <StatusBadge status={f.status} />
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -36,7 +36,6 @@ def test_tokens_empty():
 def test_knowledge_base_retrieve():
     """KnowledgeBase.retrieve should return relevant chunks for a query."""
     import tempfile
-    from pathlib import Path
 
     with tempfile.TemporaryDirectory() as tmpdir:
         docs_dir = Path(tmpdir)
@@ -52,7 +51,6 @@ def test_knowledge_base_retrieve():
 def test_knowledge_base_retrieve_no_match():
     """Query with no matching tokens should return empty results."""
     import tempfile
-    from pathlib import Path
 
     with tempfile.TemporaryDirectory() as tmpdir:
         docs_dir = Path(tmpdir)
@@ -65,7 +63,6 @@ def test_knowledge_base_retrieve_no_match():
 def test_knowledge_base_empty():
     """KnowledgeBase with no docs should return empty results."""
     import tempfile
-    from pathlib import Path
 
     with tempfile.TemporaryDirectory() as tmpdir:
         docs_dir = Path(tmpdir)

@@ -1,4 +1,4 @@
-from app.models import AIAnalysis, Asset, Finding, Service
+from app.models import Asset, Finding, Service
 from app.services.ai.analyst import (
     _fallback_analysis,
     _infer_attack_paths,

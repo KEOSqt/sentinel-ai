@@ -4,8 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services import pipeline
-from app.db import ScanRecord
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_nmap.xml"

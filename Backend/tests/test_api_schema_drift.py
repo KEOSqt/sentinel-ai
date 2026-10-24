@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -29,7 +28,7 @@ def _scan_and_analyze(client):
 def test_api_assets_schema_matches_frontend_types(client):
     """Schema-drift test: verify the /api/v1/assets endpoint returns
     fields that match the frontend Asset type definition."""
-    scan_id = _scan_and_analyze(client)
+    _scan_and_analyze(client)
     resp = client.get("/api/v1/assets")
     assert resp.status_code == 200, resp.text
     assets = resp.json()
@@ -112,7 +111,7 @@ def test_api_findings_schema_matches_frontend_types(client):
 
 def test_api_scans_schema_matches_frontend_types(client):
     """Verify /api/v1/scans response matches frontend Scan type."""
-    scan_id = _scan_and_analyze(client)
+    _scan_and_analyze(client)
     resp = client.get("/api/v1/scans")
     assert resp.status_code == 200, resp.text
     scans = resp.json()
