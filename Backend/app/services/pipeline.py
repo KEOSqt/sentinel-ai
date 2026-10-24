@@ -1,10 +1,17 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.core.time import to_iso_utc
-from app.db import ReportRecord, ScanRecord, SessionLocal, dumps, loads
+from app.db import (
+    FindingRecord,
+    ReportRecord,
+    ScanRecord,
+    SessionLocal,
+    dumps,
+    loads,
+)
 from app.models import Finding, SecurityEvidence
 from app.parsers.nmap import NmapParser
 from app.services import engine
@@ -63,6 +70,29 @@ def run_analysis(scan_id: str) -> ScanRecord | None:
         merged.analysis_json = record.analysis_json
         merged.finding_count = record.finding_count
         merged.status = record.status
+        # Delete old findings for this scan before inserting new ones,
+        # so re-analysis doesn't leave duplicate rows.
+        session.execute(delete(FindingRecord).where(FindingRecord.scan_id == scan_id))
+        # Store findings in the findings table for efficient querying
+        # (avoids walking every scan's JSON on each request).
+        for f in findings:
+            finding_record = FindingRecord(
+                id=f.id,
+                scan_id=scan_id,
+                title=f.title,
+                severity=f.severity.value,
+                risk_score=f.risk_score,
+                confidence=f.confidence.value,
+                asset_ip=f.asset.ip if f.asset else None,
+                affected_service_port=f.affected_service.port
+                if f.affected_service
+                else None,
+                affected_service_protocol=f.affected_service.protocol
+                if f.affected_service
+                else None,
+                status=f.status.value,
+            )
+            session.add(finding_record)
         session.commit()
     return record
 

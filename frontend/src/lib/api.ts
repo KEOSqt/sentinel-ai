@@ -129,6 +129,7 @@ export type Asset = {
   os?: string | null;
   exposure: string;
   services: { port: number; protocol: string; service: string; product?: string | null; version?: string | null; state: string }[];
+  metadata: Record<string, unknown>;
 };
 
 /** A scan that observed an asset — the provenance behind the merged view. */

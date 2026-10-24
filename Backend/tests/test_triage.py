@@ -114,14 +114,14 @@ def test_triage_survives_reanalysis(client):
     scan_id = _scan(client)
     _analyze(client, scan_id)
 
-    before = client.get("/api/v1/findings").json()
+    before = client.get("/api/v1/findings", params={"scan_id": scan_id}).json()
     target = before[0]
     title = target["title"]
     client.patch(f"/api/v1/findings/{target['id']}", json={"status": "acknowledged", "note": "keep me"})
 
     _analyze(client, scan_id)  # re-run on the same scan
 
-    after = client.get("/api/v1/findings").json()
+    after = client.get("/api/v1/findings", params={"scan_id": scan_id}).json()
     same = [f for f in after if f["title"] == title]
     assert same, "the finding should still exist after re-analysis"
     assert same[0]["id"] != target["id"], "ids are expected to change; that is the hazard"

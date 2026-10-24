@@ -1,11 +1,15 @@
 import json
+import logging
 import threading
 import time
 import urllib.parse
 import urllib.request
 
 from app.core.config import settings
+from app.core.logging import get_request_id
 from app.models import Confidence, Severity, Vulnerability
+
+logger = logging.getLogger(__name__)
 
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 MAX_CACHE_ENTRIES = 512
@@ -69,6 +73,10 @@ def lookup(product: str | None, version: str | None) -> list[Vulnerability]:
     key = (product.strip().lower(), (version or "").strip().lower() or None)
     cached = _cache_get(key)
     if cached is not None:
+        logger.info(
+            "nvd_cache_hit",
+            extra={"product": product, "version": version, "request_id": get_request_id()},
+        )
         return cached
 
     keyword = f"{product} {version}" if version else product
@@ -85,9 +93,17 @@ def lookup(product: str | None, version: str | None) -> list[Vulnerability]:
         with urllib.request.urlopen(request, timeout=10) as response:
             data = json.load(response)
     except Exception:
+        logger.error(
+            "nvd_lookup_failed",
+            extra={"product": product, "version": version, "request_id": get_request_id()},
+        )
         return []
 
     if not isinstance(data, dict):
+        logger.error(
+            "nvd_invalid_response",
+            extra={"product": product, "version": version, "request_id": get_request_id()},
+        )
         return []
 
     results = []
@@ -119,6 +135,15 @@ def lookup(product: str | None, version: str | None) -> list[Vulnerability]:
             )
         )
     _cache_set(key, results)
+    logger.info(
+        "nvd_lookup_success",
+        extra={
+            "product": product,
+            "version": version,
+            "finding_count": len(results),
+            "request_id": get_request_id(),
+        },
+    )
     return results
 
 
